@@ -27,7 +27,7 @@ export default function HomePage() {
     setPage(1);
     try {
       // 1. Fetch top headlines page 1
-      const topData = await getTopHeadlines({ category: 'general', page: 1, pageSize: 12 });
+      const topData = await getTopHeadlines({ category: 'general', page: 1, pageSize: 10 });
       const articles = topData.articles || [];
       setTopArticles(articles);
       setHasMore(Boolean(topData.hasMore));
@@ -54,7 +54,7 @@ export default function HomePage() {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const topData = await getTopHeadlines({ category: 'general', page: nextPage, pageSize: 9 });
+      const topData = await getTopHeadlines({ category: 'general', page: nextPage, pageSize: 10 });
       const newArticles = topData.articles || [];
 
       if (newArticles.length === 0) {

@@ -45,6 +45,15 @@ export const PROVIDERS = {
 };
 
 /**
+ * Check whether an API key value is a placeholder or invalid test value
+ */
+export function isPlaceholderApiKey(key) {
+  if (!key || typeof key !== 'string') return true;
+  const clean = key.trim().toLowerCase();
+  return clean === '' || clean === 'test' || clean === 'undefined' || clean === 'null' || clean === 'none';
+}
+
+/**
  * Get active API key from localStorage or Vite environment variable (scoped by provider)
  */
 export function getStoredApiKey(targetProvider) {
@@ -54,25 +63,40 @@ export function getStoredApiKey(targetProvider) {
   if (typeof window !== 'undefined') {
     // 1. Check provider-scoped key
     const scopedKey = localStorage.getItem(providerStorageKey);
-    if (scopedKey && scopedKey.trim()) return scopedKey.trim();
+    if (scopedKey && scopedKey.trim()) {
+      const cleanKey = scopedKey.trim();
+      if (isPlaceholderApiKey(cleanKey)) {
+        // Discard placeholder keys
+        localStorage.removeItem(providerStorageKey);
+      } else {
+        return cleanKey;
+      }
+    }
 
-    // 2. Safe legacy key migration: only use legacy key if the legacy provider matches
+    // 2. Safe legacy key migration: reject 'test' and only migrate valid keys if legacy provider matches
     const legacyKey = localStorage.getItem('newsly_api_key');
     const legacyProvider = localStorage.getItem('newsly_api_provider') || 'gnews';
     if (legacyKey && legacyKey.trim()) {
-      if (legacyProvider === provider) {
-        localStorage.setItem(providerStorageKey, legacyKey.trim());
+      const cleanLegacy = legacyKey.trim();
+      if (isPlaceholderApiKey(cleanLegacy)) {
+        // Delete invalid placeholder legacy key immediately
         localStorage.removeItem('newsly_api_key');
-        return legacyKey.trim();
+      } else if (legacyProvider === provider) {
+        // Migrate legitimate key and purge legacy key
+        localStorage.setItem(providerStorageKey, cleanLegacy);
+        localStorage.removeItem('newsly_api_key');
+        return cleanLegacy;
       }
     }
   }
 
-  // 3. Environment variable fallback (only if matching the configured provider)
+  // 3. Environment variable fallback (only if matching the configured provider and non-placeholder)
   const envProvider = import.meta.env.VITE_NEWS_API_PROVIDER || 'gnews';
   if (envProvider === provider) {
     const envKey = import.meta.env.VITE_NEWS_API_KEY;
-    if (envKey && envKey.trim()) return envKey.trim();
+    if (envKey && envKey.trim() && !isPlaceholderApiKey(envKey.trim())) {
+      return envKey.trim();
+    }
   }
 
   return '';
@@ -86,7 +110,7 @@ export function setStoredApiKey(key, targetProvider) {
   const providerStorageKey = `newsly_api_key_${provider}`;
   if (typeof window !== 'undefined') {
     const trimmed = (key || '').trim();
-    if (trimmed) {
+    if (trimmed && !isPlaceholderApiKey(trimmed)) {
       localStorage.setItem(providerStorageKey, trimmed);
     } else {
       localStorage.removeItem(providerStorageKey);

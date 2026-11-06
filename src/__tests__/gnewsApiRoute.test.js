@@ -295,4 +295,87 @@ describe('Vercel Serverless Function: /api/gnews', () => {
     expect(stringified).not.toContain('super-secret-production-token-999');
     expect(stringified).toContain('[REDACTED]');
   });
+
+  it('ignores placeholder client key "test" and uses server-side GNEWS_API_KEY directly', async () => {
+    process.env.GNEWS_API_KEY = 'server-prod-key-123';
+
+    let requestedUrl = '';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ totalArticles: 1, articles: [{ title: 'Direct Key Success' }] }),
+      };
+    });
+
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { endpoint: 'top-headlines', apikey: 'test' },
+    });
+    await handler(req, res);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(requestedUrl).toContain('apikey=server-prod-key-123');
+    expect(requestedUrl).not.toContain('apikey=test');
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('clamps requested max article count to at most 10 articles (GNews free tier limit)', async () => {
+    process.env.GNEWS_API_KEY = 'valid-key';
+
+    let requestedUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ totalArticles: 0, articles: [] }),
+      };
+    });
+
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { endpoint: 'top-headlines', max: '25' },
+    });
+    await handler(req, res);
+
+    expect(requestedUrl).toContain('max=10');
+    expect(requestedUrl).not.toContain('max=25');
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('retries with server-side GNEWS_API_KEY when client key receives 400 Bad Request from upstream', async () => {
+    process.env.GNEWS_API_KEY = 'fallback-server-key';
+
+    const fetchCalls = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      fetchCalls.push(url);
+      if (url.includes('apikey=malformed-client-key')) {
+        return {
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: async () => ({ errors: ['Invalid API key format'] }),
+        };
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ totalArticles: 2, articles: [{ title: 'Recovered via 400 Fallback' }] }),
+      };
+    });
+
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { endpoint: 'top-headlines', apikey: 'malformed-client-key' },
+    });
+    await handler(req, res);
+
+    expect(fetchCalls).toHaveLength(2);
+    expect(fetchCalls[0]).toContain('apikey=malformed-client-key');
+    expect(fetchCalls[1]).toContain('apikey=fallback-server-key');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.totalArticles).toBe(2);
+  });
 });

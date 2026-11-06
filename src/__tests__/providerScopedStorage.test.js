@@ -57,4 +57,31 @@ describe('Provider-Scoped API Key Storage', () => {
     expect(getStoredApiKey('guardian')).toBe('');
     expect(localStorage.getItem('newsly_api_key_guardian')).toBeNull();
   });
+
+  it('purges stale "test" legacy key instead of migrating it', () => {
+    localStorage.setItem('newsly_api_key', 'test');
+    localStorage.setItem('newsly_api_provider', 'gnews');
+
+    expect(getStoredApiKey('gnews')).toBe('');
+    expect(localStorage.getItem('newsly_api_key')).toBeNull();
+    expect(localStorage.getItem('newsly_api_key_gnews')).toBeNull();
+  });
+
+  it('purges placeholder values from provider storage on retrieval', () => {
+    localStorage.setItem('newsly_api_key_guardian', 'test');
+    expect(getStoredApiKey('guardian')).toBe('');
+    expect(localStorage.getItem('newsly_api_key_guardian')).toBeNull();
+
+    localStorage.setItem('newsly_api_key_gnews', 'undefined');
+    expect(getStoredApiKey('gnews')).toBe('');
+    expect(localStorage.getItem('newsly_api_key_gnews')).toBeNull();
+  });
+
+  it('rejects saving placeholder values in setStoredApiKey', () => {
+    setStoredApiKey('test', 'gnews');
+    expect(localStorage.getItem('newsly_api_key_gnews')).toBeNull();
+
+    setStoredApiKey('null', 'guardian');
+    expect(localStorage.getItem('newsly_api_key_guardian')).toBeNull();
+  });
 });

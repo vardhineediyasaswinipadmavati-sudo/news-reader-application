@@ -26,36 +26,53 @@ export function resolveEndpoint(req) {
 }
 
 export function resolveClientApiKey(req) {
+  let rawKey = '';
+
   // 1. Client query parameters
   if (req.query && req.query.apikey && String(req.query.apikey).trim()) {
-    return String(req.query.apikey).trim();
-  }
-  if (req.query && req.query.token && String(req.query.token).trim()) {
-    return String(req.query.token).trim();
-  }
-
-  // 2. Client headers
-  if (req.headers) {
-    const xApiKey = req.headers['x-api-key'];
+    rawKey = String(req.query.apikey).trim();
+  } else if (req.query && req.query.token && String(req.query.token).trim()) {
+    rawKey = String(req.query.token).trim();
+  } else if (req.headers) {
+    // 2. Client headers
+    const xApiKey = req.headers['x-api-key'] || req.headers['x-custom-api-key'];
     if (xApiKey && String(xApiKey).trim()) {
-      return String(xApiKey).trim();
-    }
-    const authHeader = req.headers['authorization'];
-    if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-      const bearerToken = authHeader.substring(7).trim();
-      if (bearerToken) return bearerToken;
+      rawKey = String(xApiKey).trim();
+    } else {
+      const authHeader = req.headers['authorization'];
+      if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        const bearerToken = authHeader.substring(7).trim();
+        if (bearerToken) rawKey = bearerToken;
+      }
     }
   }
 
-  return '';
+  // Reject placeholder or invalid client keys (such as 'test', empty strings, or junk)
+  if (!rawKey) return '';
+  const clean = rawKey.toLowerCase();
+  if (
+    clean === 'test' ||
+    clean === 'undefined' ||
+    clean === 'null' ||
+    clean === 'none' ||
+    clean === 'default'
+  ) {
+    return '';
+  }
+
+  return rawKey;
 }
 
 export function resolveServerApiKey() {
   if (process.env.GNEWS_API_KEY && process.env.GNEWS_API_KEY.trim()) {
-    return process.env.GNEWS_API_KEY.trim();
+    const key = process.env.GNEWS_API_KEY.trim();
+    const clean = key.toLowerCase();
+    if (clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none') return key;
   }
   if (process.env.VITE_NEWS_API_KEY && process.env.VITE_NEWS_API_KEY.trim()) {
-    return process.env.VITE_NEWS_API_KEY.trim();
+    const key = process.env.VITE_NEWS_API_KEY.trim();
+    const clean = key.toLowerCase();
+    if (clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none') return key;
   }
   return '';
 }
@@ -177,6 +194,12 @@ export default async function handler(req, res) {
     targetParams.set('lang', 'en');
   }
 
+  // Enforce GNews API v4 free tier plan limit (maximum 10 articles per request)
+  let maxArticles = parseInt(targetParams.get('max'), 10);
+  if (isNaN(maxArticles) || maxArticles < 1) maxArticles = 10;
+  if (maxArticles > 10) maxArticles = 10;
+  targetParams.set('max', String(maxArticles));
+
   // Enforce search query parameter requirement
   if (endpoint === 'search' && (!targetParams.get('q') || !targetParams.get('q').trim())) {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -189,21 +212,23 @@ export default async function handler(req, res) {
 
   // 5. Fetch from upstream GNews service with server-key fallback protection
   try {
-    // Determine initial key: client key if explicitly provided, otherwise server key
+    // Prefer server-side GNEWS_API_KEY when configured; only use client key if explicitly supplied and non-placeholder
     const initialKey = clientKey || serverKey;
     let attemptResult = await fetchGNewsUpstream(endpoint, targetParams, initialKey);
 
-    // If client-supplied key received 401 Unauthorized, and server-side key is available and distinct:
-    // Fall back to the verified server-side key (avoids disruption from invalid/unrelated client keys)
-    if (
+    // If client-supplied key received an authentication/malformed-key error (401 or 400),
+    // and server-side key is available and distinct:
+    // Retry ONCE with the server-side key to ensure live news is served seamlessly
+    const isAuthOrBadKey =
       !attemptResult.ok &&
-      attemptResult.status === 401 &&
+      (attemptResult.status === 401 || attemptResult.status === 400) &&
       clientKey &&
       serverKey &&
-      clientKey !== serverKey
-    ) {
+      clientKey !== serverKey;
+
+    if (isAuthOrBadKey) {
       const fallbackResult = await fetchGNewsUpstream(endpoint, targetParams, serverKey);
-      if (fallbackResult.ok || fallbackResult.status !== 401) {
+      if (fallbackResult.ok || (fallbackResult.status !== 401 && fallbackResult.status !== 400)) {
         attemptResult = fallbackResult;
       }
     }

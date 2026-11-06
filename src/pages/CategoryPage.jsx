@@ -46,7 +46,7 @@ export default function CategoryPage() {
     setError(null);
     setPage(1);
     try {
-      const data = await getTopHeadlines({ category: categoryId, page: 1, pageSize: 12 });
+      const data = await getTopHeadlines({ category: categoryId, page: 1, pageSize: 10 });
       setArticles(data.articles || []);
       setHasMore(Boolean(data.hasMore));
     } catch (err) {
@@ -62,7 +62,7 @@ export default function CategoryPage() {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const data = await getTopHeadlines({ category: categoryId, page: nextPage, pageSize: 9 });
+      const data = await getTopHeadlines({ category: categoryId, page: nextPage, pageSize: 10 });
       const newArticles = data.articles || [];
 
       if (newArticles.length === 0) {

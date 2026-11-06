@@ -29,7 +29,7 @@ describe('News API Service', () => {
   });
 
   it('correctly handles and surfaces 401 Unauthorized as INVALID_KEY error', async () => {
-    localStorage.setItem('newsly_api_key', 'test');
+    localStorage.setItem('newsly_api_key', 'invalid-user-key');
     localStorage.setItem('newsly_api_provider', 'guardian');
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -45,6 +45,20 @@ describe('News API Service', () => {
       expect(err).toBeInstanceOf(ApiError);
       expect(err.code).toBe('INVALID_KEY');
       expect(err.message).toMatch(/Guardian/i);
+    }
+  });
+
+  it('rejects stale "test" key from legacy storage and throws MISSING_KEY', async () => {
+    localStorage.setItem('newsly_api_key', 'test');
+    localStorage.setItem('newsly_api_provider', 'guardian');
+
+    try {
+      await getTopHeadlines({ category: 'world' });
+      expect.unreachable('Should have thrown an ApiError');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect(err.code).toBe('MISSING_KEY');
+      expect(localStorage.getItem('newsly_api_key')).toBeNull();
     }
   });
 

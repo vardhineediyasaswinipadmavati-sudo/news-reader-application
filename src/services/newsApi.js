@@ -216,9 +216,18 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
 }
 
 /**
+ * Helper to check whether a custom key is legitimate and should be sent over wire
+ */
+function isValidCustomApiKey(key) {
+  if (!key || typeof key !== 'string') return false;
+  const clean = key.trim().toLowerCase();
+  return clean !== '' && clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none' && clean !== 'default';
+}
+
+/**
  * Fetch top headlines for home or category with pagination, deduplication, and diversity
  */
-export async function getTopHeadlines({ category = 'general', page = 1, pageSize = 12 } = {}) {
+export async function getTopHeadlines({ category = 'general', page = 1, pageSize = 10 } = {}) {
   const provider = getStoredProvider();
   const apiKey = getStoredApiKey(provider);
 
@@ -238,6 +247,8 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
   let url;
   let normalizer;
 
+  const effectiveLimit = provider === 'gnews' ? Math.min(pageSize, 10) : pageSize;
+
   if (provider === 'guardian') {
     const section = catConfig && catConfig.guardianSection ? catConfig.guardianSection : '';
     const qParam = catConfig && catConfig.query ? `&q=${encodeURIComponent(catConfig.query)}` : '';
@@ -255,16 +266,17 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
     }
     normalizer = (item) => normalizeNewsDataArticle(item, categoryLabel);
   } else {
-    // Default GNews provider
+    // Default GNews provider: clamp to maximum 10 articles per request (free-tier limit)
     const pageParam = page > 1 ? `&page=${page}` : '';
-    const keyParam = apiKey ? `&apikey=${encodeURIComponent(apiKey)}` : '';
+    // Never append placeholder 'test' keys to API requests
+    const keyParam = isValidCustomApiKey(apiKey) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
     if (category.toLowerCase() === 'india') {
-      url = `${baseUrl}/top-headlines?country=in&lang=en&max=${pageSize}${keyParam}${pageParam}`;
+      url = `${baseUrl}/top-headlines?country=in&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     } else if (catConfig && catConfig.query) {
-      url = `${baseUrl}/search?q=${encodeURIComponent(catConfig.query)}&lang=en&max=${pageSize}${keyParam}${pageParam}`;
+      url = `${baseUrl}/search?q=${encodeURIComponent(catConfig.query)}&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     } else {
       const gCategory = catConfig ? catConfig.gnewsCategory : (category === 'general' ? 'general' : category);
-      url = `${baseUrl}/top-headlines?category=${encodeURIComponent(gCategory)}&lang=en&max=${pageSize}${keyParam}${pageParam}`;
+      url = `${baseUrl}/top-headlines?category=${encodeURIComponent(gCategory)}&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     }
     normalizer = (item) => normalizeGNewsArticle(item, categoryLabel);
   }
@@ -300,7 +312,7 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
     category: categoryLabel,
     page,
     pageSize,
-    hasMore: rawArticles.length >= pageSize,
+    hasMore: rawArticles.length >= effectiveLimit,
   };
 }
 
@@ -332,8 +344,9 @@ export async function getLatestNews({ page = 1, pageSize = 8 } = {}) {
     normalizer = (item) => normalizeNewsDataArticle(item, 'Breaking Wire');
   } else {
     const pageParam = page > 1 ? `&page=${page}` : '';
-    const keyParam = apiKey ? `&apikey=${encodeURIComponent(apiKey)}` : '';
-    url = `${baseUrl}/top-headlines?category=general&lang=en&max=${pageSize}${keyParam}${pageParam}`;
+    const keyParam = isValidCustomApiKey(apiKey) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
+    const effectiveLimit = Math.min(pageSize, 10);
+    url = `${baseUrl}/top-headlines?category=general&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Breaking Wire');
   }
 
@@ -396,8 +409,9 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
     normalizer = (item) => normalizeNewsDataArticle(item, 'Search Result');
   } else {
     const pageParam = page > 1 ? `&page=${page}` : '';
-    const keyParam = apiKey ? `&apikey=${encodeURIComponent(apiKey)}` : '';
-    url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&max=${fetchSize}${keyParam}${pageParam}`;
+    const keyParam = isValidCustomApiKey(apiKey) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
+    const effectiveLimit = Math.min(fetchSize, 10);
+    url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Search Result');
   }
 
