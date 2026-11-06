@@ -378,4 +378,59 @@ describe('Vercel Serverless Function: /api/gnews', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.totalArticles).toBe(2);
   });
+
+  it('rejects foreign hyphenated keys (such as Guardian developer UUIDs) and uses server key directly', async () => {
+    process.env.GNEWS_API_KEY = 'configured-server-key';
+
+    let requestedUrl = '';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ totalArticles: 1, articles: [] }),
+      };
+    });
+
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { endpoint: 'top-headlines', apikey: '0fbd0f14-fc45-429e-846e-602791ee0bd9' },
+    });
+    await handler(req, res);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(requestedUrl).toContain('apikey=configured-server-key');
+    expect(requestedUrl).not.toContain('0fbd0f14');
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('reports server-side 401 when client key receives 400 and server fallback receives 401', async () => {
+    process.env.GNEWS_API_KEY = 'invalid-server-key';
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      if (url.includes('apikey=client-malformed')) {
+        return {
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          json: async () => ({ errors: ['The API key is malformed'] }),
+        };
+      }
+      return {
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+        json: async () => ({ errors: ["The API key doesn't match any account"] }),
+      };
+    });
+
+    const { req, res } = createMockReqRes({
+      method: 'GET',
+      query: { endpoint: 'top-headlines', apikey: 'client-malformed' },
+    });
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toMatch(/doesn't match any account/i);
+  });
 });

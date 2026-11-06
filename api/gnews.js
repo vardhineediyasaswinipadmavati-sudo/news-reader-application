@@ -25,6 +25,9 @@ export function resolveEndpoint(req) {
   return 'top-headlines';
 }
 
+// Format check for Guardian UUID developer keys (to prevent cross-provider key confusion)
+const UUID_KEY_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function resolveClientApiKey(req) {
   let rawKey = '';
 
@@ -49,30 +52,40 @@ export function resolveClientApiKey(req) {
 
   // Reject placeholder or invalid client keys (such as 'test', empty strings, or junk)
   if (!rawKey) return '';
-  const clean = rawKey.toLowerCase();
+  const clean = rawKey.trim();
+  const lower = clean.toLowerCase();
   if (
-    clean === 'test' ||
-    clean === 'undefined' ||
-    clean === 'null' ||
-    clean === 'none' ||
-    clean === 'default'
+    lower === 'test' ||
+    lower === 'undefined' ||
+    lower === 'null' ||
+    lower === 'none' ||
+    lower === 'default'
   ) {
     return '';
   }
 
-  return rawKey;
+  // Reject foreign Guardian UUID developer keys
+  if (UUID_KEY_REGEX.test(clean)) {
+    return '';
+  }
+
+  return clean;
 }
 
 export function resolveServerApiKey() {
   if (process.env.GNEWS_API_KEY && process.env.GNEWS_API_KEY.trim()) {
     const key = process.env.GNEWS_API_KEY.trim();
     const clean = key.toLowerCase();
-    if (clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none') return key;
+    if (clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none' && !UUID_KEY_REGEX.test(key)) {
+      return key;
+    }
   }
   if (process.env.VITE_NEWS_API_KEY && process.env.VITE_NEWS_API_KEY.trim()) {
     const key = process.env.VITE_NEWS_API_KEY.trim();
     const clean = key.toLowerCase();
-    if (clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none') return key;
+    if (clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none' && !UUID_KEY_REGEX.test(key)) {
+      return key;
+    }
   }
   return '';
 }
@@ -229,6 +242,8 @@ export default async function handler(req, res) {
     if (isAuthOrBadKey) {
       const fallbackResult = await fetchGNewsUpstream(endpoint, targetParams, serverKey);
       if (fallbackResult.ok || (fallbackResult.status !== 401 && fallbackResult.status !== 400)) {
+        attemptResult = fallbackResult;
+      } else if (attemptResult.status === 400 && fallbackResult.status === 401) {
         attemptResult = fallbackResult;
       }
     }

@@ -95,7 +95,12 @@ export function getStoredApiKey(targetProvider) {
   if (envProvider === provider) {
     const envKey = import.meta.env.VITE_NEWS_API_KEY;
     if (envKey && envKey.trim() && !isPlaceholderApiKey(envKey.trim())) {
-      return envKey.trim();
+      const clean = envKey.trim();
+      // Never use a Guardian developer UUID for GNews
+      if (provider === 'gnews' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean)) {
+        return '';
+      }
+      return clean;
     }
   }
 

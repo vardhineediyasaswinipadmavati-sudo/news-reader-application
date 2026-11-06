@@ -149,4 +149,46 @@ describe('News API Service', () => {
     expect(article.url).toBe('https://www.theguardian.com/technology/2026/nov/04/quantum-supercomputer-milestone');
     expect(article.publishedAt).toBe('2026-11-04T09:30:00Z');
   });
+
+  it('surfaces exact upstream error message from JSON body on HTTP 400', async () => {
+    localStorage.setItem('newsly_api_key', 'valid-key');
+    localStorage.setItem('newsly_api_provider', 'gnews');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      status: 400,
+      ok: false,
+      statusText: 'Bad Request',
+      json: async () => ({
+        message: 'The API key is malformed: an API key is 32 characters, digits 0-9 and letters a-f.',
+      }),
+    });
+
+    try {
+      await getTopHeadlines({ category: 'general' });
+      expect.unreachable('Should have thrown an ApiError');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiError);
+      expect(err.code).toBe('HTTP_ERROR');
+      expect(err.message).toBe('The API key is malformed: an API key is 32 characters, digits 0-9 and letters a-f.');
+    }
+  });
+
+  it('never appends hyphenated key to GNews API URL', async () => {
+    localStorage.setItem('newsly_api_key_gnews', '0fbd0f14-fc45-429e-846e-602791ee0bd9');
+    localStorage.setItem('newsly_api_provider', 'gnews');
+
+    let requestedUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async (url) => {
+      requestedUrl = url;
+      return {
+        status: 200,
+        ok: true,
+        json: async () => ({ articles: [] }),
+      };
+    });
+
+    await getTopHeadlines({ category: 'general' });
+    expect(requestedUrl).not.toContain('0fbd0f14');
+    expect(requestedUrl).not.toContain('apikey=');
+  });
 });

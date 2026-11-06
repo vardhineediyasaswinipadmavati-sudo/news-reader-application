@@ -26,7 +26,9 @@ export class ApiError extends Error {
  * and falls back to full external endpoints in SSR/test environments.
  */
 function getProviderBaseUrl(provider) {
+  const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST);
   const isBrowser =
+    !isTest &&
     typeof window !== 'undefined' &&
     window.location &&
     window.location.origin &&
@@ -182,12 +184,24 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
       }
 
       if (!response.ok) {
-        const errorBody = await response.text().catch(() => '');
-        throw new ApiError(
-          `News service returned status ${response.status}: ${response.statusText}`,
-          'HTTP_ERROR',
-          { status: response.status, body: errorBody }
-        );
+        let msg = `News service returned status ${response.status}: ${response.statusText}`;
+        let details = { status: response.status };
+        try {
+          const errData = await response.json();
+          if (errData) {
+            if (errData.message) {
+              msg = errData.message;
+            } else if (Array.isArray(errData.errors) && errData.errors[0]) {
+              msg = errData.errors[0];
+            }
+            details = { ...details, ...errData };
+          }
+        } catch {
+          const errorBody = await response.text().catch(() => '');
+          details.body = errorBody;
+        }
+
+        throw new ApiError(msg, 'HTTP_ERROR', details);
       }
 
       const data = await response.json();
@@ -195,7 +209,10 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
       return data;
     } catch (err) {
       lastError = err;
-      if (err instanceof ApiError && (err.code === 'INVALID_KEY' || err.code === 'RATE_LIMITED')) {
+      if (
+        err instanceof ApiError &&
+        (err.code === 'INVALID_KEY' || err.code === 'RATE_LIMITED' || err.details?.status === 400)
+      ) {
         throw err;
       }
       // Differentiate browser CORS or network drop from general error
@@ -218,10 +235,17 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
 /**
  * Helper to check whether a custom key is legitimate and should be sent over wire
  */
-function isValidCustomApiKey(key) {
+function isValidCustomApiKey(key, provider = 'gnews') {
   if (!key || typeof key !== 'string') return false;
   const clean = key.trim().toLowerCase();
-  return clean !== '' && clean !== 'test' && clean !== 'undefined' && clean !== 'null' && clean !== 'none' && clean !== 'default';
+  if (clean === '' || clean === 'test' || clean === 'undefined' || clean === 'null' || clean === 'none' || clean === 'default') {
+    return false;
+  }
+  // GNews API v4 keys do not use UUID format (rejecting Guardian UUIDs)
+  if (provider === 'gnews' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key.trim())) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -268,8 +292,8 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
   } else {
     // Default GNews provider: clamp to maximum 10 articles per request (free-tier limit)
     const pageParam = page > 1 ? `&page=${page}` : '';
-    // Never append placeholder 'test' keys to API requests
-    const keyParam = isValidCustomApiKey(apiKey) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
+    // Never append placeholder 'test' or cross-provider hyphenated keys to API requests
+    const keyParam = isValidCustomApiKey(apiKey, provider) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
     if (category.toLowerCase() === 'india') {
       url = `${baseUrl}/top-headlines?country=in&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     } else if (catConfig && catConfig.query) {
@@ -344,7 +368,7 @@ export async function getLatestNews({ page = 1, pageSize = 8 } = {}) {
     normalizer = (item) => normalizeNewsDataArticle(item, 'Breaking Wire');
   } else {
     const pageParam = page > 1 ? `&page=${page}` : '';
-    const keyParam = isValidCustomApiKey(apiKey) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
+    const keyParam = isValidCustomApiKey(apiKey, provider) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
     const effectiveLimit = Math.min(pageSize, 10);
     url = `${baseUrl}/top-headlines?category=general&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Breaking Wire');
@@ -409,7 +433,7 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
     normalizer = (item) => normalizeNewsDataArticle(item, 'Search Result');
   } else {
     const pageParam = page > 1 ? `&page=${page}` : '';
-    const keyParam = isValidCustomApiKey(apiKey) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
+    const keyParam = isValidCustomApiKey(apiKey, provider) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
     const effectiveLimit = Math.min(fetchSize, 10);
     url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Search Result');
