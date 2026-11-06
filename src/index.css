@@ -1,0 +1,329 @@
+/* ==========================================================================
+   NEWSLY — Editorial Design System
+   ========================================================================== */
+
+:root {
+  /* Color System - Light Editorial (Warm Parchment & Deep Charcoal) */
+  --bg-primary: #fbfaf6;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f4f2ec;
+  --bg-subtle: #eeece4;
+  --bg-header: #fbfaf6;
+  
+  --text-primary: #12151a;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --text-inverse: #ffffff;
+  
+  --accent: #b91c1c;           /* Editorial Crimson */
+  --accent-hover: #991b1b;
+  --accent-subtle: #fef2f2;
+  --accent-border: #fecaca;
+  
+  --border-color: #e2dfd5;
+  --border-dark: #12151a;
+  --border-subtle: #eceae1;
+
+  --navy-dark: #0f172a;
+  --navy-accent: #1e293b;
+
+  --badge-bg: #12151a;
+  --badge-text: #ffffff;
+
+  --shadow-sm: 0 1px 2px rgba(18, 21, 26, 0.04);
+  --shadow-md: 0 4px 12px rgba(18, 21, 26, 0.06);
+  --shadow-lg: 0 12px 28px rgba(18, 21, 26, 0.08);
+
+  /* Typography */
+  --font-serif: 'Newsreader', 'Playfair Display', Georgia, Cambria, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Cinzel', 'Playfair Display', Georgia, serif;
+
+  /* Layout */
+  --container-max: 1320px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme='dark'] {
+  /* Color System - Dark Editorial (Deep Midnight Charcoal & Crisp Parchment) */
+  --bg-primary: #0a0d14;
+  --bg-surface: #111622;
+  --bg-surface-elevated: #182030;
+  --bg-subtle: #1f293d;
+  --bg-header: #0a0d14;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #8896ab;
+  --text-inverse: #0a0d14;
+  
+  --accent: #ef4444;           /* High-contrast Red for Dark */
+  --accent-hover: #f87171;
+  --accent-subtle: rgba(239, 68, 68, 0.12);
+  --accent-border: rgba(239, 68, 68, 0.3);
+  
+  --border-color: #232d3f;
+  --border-dark: #374763;
+  --border-subtle: #1a2232;
+
+  --navy-dark: #06090e;
+  --navy-accent: #0f1624;
+
+  --badge-bg: #ef4444;
+  --badge-text: #ffffff;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   Base & Resets
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ==========================================================================
+   Typography Utilities
+   ========================================================================== */
+
+.editorial-headline {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.editorial-serif {
+  font-family: var(--font-serif);
+}
+
+.editorial-sans {
+  font-family: var(--font-sans);
+}
+
+.editorial-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   Layout Containers
+   ========================================================================== */
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Newspaper rules / dividers */
+.rule-thin {
+  height: 1px;
+  background-color: var(--border-color);
+  border: none;
+  margin: 1rem 0;
+}
+
+.rule-double {
+  height: 4px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  margin: 1.25rem 0;
+}
+
+.rule-heavy {
+  height: 3px;
+  background-color: var(--border-dark);
+  border: none;
+  margin: 1.5rem 0;
+}
+
+/* ==========================================================================
+   Buttons & Badges
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  text-transform: uppercase;
+}
+
+.btn-primary {
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  border: 1px solid var(--text-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.btn-secondary,
+.btn-outline {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover,
+.btn-outline:hover {
+  border-color: var(--text-primary);
+  background-color: var(--bg-surface-elevated);
+}
+
+.btn-accent {
+  background-color: var(--accent);
+  color: #ffffff;
+  border: 1px solid var(--accent);
+}
+
+.btn-accent:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.btn-icon:hover {
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+  background-color: var(--bg-surface-elevated);
+}
+
+.category-tag {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.edition-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.pulse-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  display: inline-block;
+  animation: pulseGlow 1.8s infinite ease-in-out;
+}
