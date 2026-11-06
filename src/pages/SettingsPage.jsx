@@ -18,13 +18,15 @@ import { clearApiCache } from '../services/newsApi';
 import { useToast } from '../components/Toast';
 
 export default function SettingsPage() {
-  const { apiKey, provider, setApiKey, setProvider } = useApiKey();
+  const { apiKey, provider, setApiKey, setProvider, getApiKeyForProvider } = useApiKey();
   const { theme, toggleTheme } = useTheme();
   const { bookmarks, clearBookmarks } = useBookmarks();
   const { addToast } = useToast();
 
-  const [inputKey, setInputKey] = useState(apiKey || '');
   const [selectedProvider, setSelectedProvider] = useState(provider || 'gnews');
+  const [inputKey, setInputKey] = useState(() => {
+    return (getApiKeyForProvider ? getApiKeyForProvider(provider || 'gnews') : apiKey) || '';
+  });
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   React.useEffect(() => {
@@ -34,7 +36,7 @@ export default function SettingsPage() {
   const handleSaveApi = (e) => {
     e.preventDefault();
     setProvider(selectedProvider);
-    setApiKey(inputKey.trim());
+    setApiKey(inputKey.trim(), selectedProvider);
     setSavedSuccess(true);
     addToast('API configuration updated successfully', 'success');
     setTimeout(() => setSavedSuccess(false), 2000);
@@ -85,7 +87,12 @@ export default function SettingsPage() {
               id="settings-provider"
               className="form-select"
               value={selectedProvider}
-              onChange={(e) => setSelectedProvider(e.target.value)}
+              onChange={(e) => {
+                const nextP = e.target.value;
+                setSelectedProvider(nextP);
+                const existingKey = getApiKeyForProvider ? getApiKeyForProvider(nextP) : '';
+                setInputKey(existingKey || '');
+              }}
             >
               <option value="gnews">GNews.io (Global & Regional Headlines)</option>
               <option value="guardian">The Guardian Open Platform</option>

@@ -14,11 +14,14 @@ import { PROVIDERS } from '../services/apiConfig';
 import { useToast } from './Toast';
 
 export default function ApiConfigHero({ onConfigured }) {
-  const { apiKey, provider, setApiKey, setProvider } = useApiKey();
+  const { apiKey, provider, setApiKey, setProvider, getApiKeyForProvider } = useApiKey();
   const { addToast } = useToast();
 
   const [selectedProvider, setSelectedProvider] = useState(provider || 'gnews');
-  const [inputKey, setInputKey] = useState(apiKey && apiKey !== 'test' ? apiKey : '');
+  const [inputKey, setInputKey] = useState(() => {
+    const initialKey = getApiKeyForProvider ? getApiKeyForProvider(provider || 'gnews') : apiKey;
+    return initialKey && initialKey !== 'test' ? initialKey : '';
+  });
   const [statusMessage, setStatusMessage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +49,7 @@ export default function ApiConfigHero({ onConfigured }) {
 
     setIsSubmitting(true);
     setProvider(selectedProvider);
-    setApiKey(cleanKey);
+    setApiKey(cleanKey, selectedProvider);
 
     setStatusMessage({
       type: 'success',
@@ -85,6 +88,8 @@ export default function ApiConfigHero({ onConfigured }) {
               key={key}
               onClick={() => {
                 setSelectedProvider(key);
+                const existingKey = getApiKeyForProvider ? getApiKeyForProvider(key) : '';
+                setInputKey(existingKey && existingKey !== 'test' ? existingKey : '');
                 setStatusMessage(null);
               }}
               className={`api-provider-card ${isSelected ? 'selected' : ''}`}

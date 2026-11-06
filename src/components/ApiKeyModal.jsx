@@ -10,13 +10,17 @@ export default function ApiKeyModal() {
     provider,
     setApiKey,
     setProvider,
+    getApiKeyForProvider,
     isConfigModalOpen,
     closeConfigModal,
   } = useApiKey();
 
   const { addToast } = useToast();
-  const [inputKey, setInputKey] = useState(apiKey && apiKey !== 'test' ? apiKey : '');
   const [selectedProvider, setSelectedProvider] = useState(provider || 'gnews');
+  const [inputKey, setInputKey] = useState(() => {
+    const initialKey = getApiKeyForProvider ? getApiKeyForProvider(provider || 'gnews') : apiKey;
+    return initialKey && initialKey !== 'test' ? initialKey : '';
+  });
   const [isSaved, setIsSaved] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -32,7 +36,7 @@ export default function ApiKeyModal() {
     }
 
     setProvider(selectedProvider);
-    setApiKey(cleanKey);
+    setApiKey(cleanKey, selectedProvider);
     setIsSaved(true);
     addToast('API settings saved successfully!', 'success');
     setTimeout(() => {
@@ -83,7 +87,10 @@ export default function ApiKeyModal() {
                 className="form-select"
                 value={selectedProvider}
                 onChange={(e) => {
-                  setSelectedProvider(e.target.value);
+                  const nextP = e.target.value;
+                  setSelectedProvider(nextP);
+                  const existingKey = getApiKeyForProvider ? getApiKeyForProvider(nextP) : '';
+                  setInputKey(existingKey && existingKey !== 'test' ? existingKey : '');
                   setErrorMessage('');
                 }}
               >

@@ -45,16 +45,55 @@ export const PROVIDERS = {
 };
 
 /**
- * Get active API key from localStorage or Vite environment variable
+ * Get active API key from localStorage or Vite environment variable (scoped by provider)
  */
-export function getStoredApiKey() {
+export function getStoredApiKey(targetProvider) {
+  const provider = targetProvider || getStoredProvider();
+  const providerStorageKey = `newsly_api_key_${provider}`;
+
   if (typeof window !== 'undefined') {
-    const customKey = localStorage.getItem('newsly_api_key');
-    if (customKey && customKey.trim()) return customKey.trim();
+    // 1. Check provider-scoped key
+    const scopedKey = localStorage.getItem(providerStorageKey);
+    if (scopedKey && scopedKey.trim()) return scopedKey.trim();
+
+    // 2. Safe legacy key migration: only use legacy key if the legacy provider matches
+    const legacyKey = localStorage.getItem('newsly_api_key');
+    const legacyProvider = localStorage.getItem('newsly_api_provider') || 'gnews';
+    if (legacyKey && legacyKey.trim()) {
+      if (legacyProvider === provider) {
+        localStorage.setItem(providerStorageKey, legacyKey.trim());
+        localStorage.removeItem('newsly_api_key');
+        return legacyKey.trim();
+      }
+    }
   }
-  const envKey = import.meta.env.VITE_NEWS_API_KEY;
-  if (envKey && envKey.trim()) return envKey.trim();
+
+  // 3. Environment variable fallback (only if matching the configured provider)
+  const envProvider = import.meta.env.VITE_NEWS_API_PROVIDER || 'gnews';
+  if (envProvider === provider) {
+    const envKey = import.meta.env.VITE_NEWS_API_KEY;
+    if (envKey && envKey.trim()) return envKey.trim();
+  }
+
   return '';
+}
+
+/**
+ * Store API key for a specific provider in localStorage
+ */
+export function setStoredApiKey(key, targetProvider) {
+  const provider = targetProvider || getStoredProvider();
+  const providerStorageKey = `newsly_api_key_${provider}`;
+  if (typeof window !== 'undefined') {
+    const trimmed = (key || '').trim();
+    if (trimmed) {
+      localStorage.setItem(providerStorageKey, trimmed);
+    } else {
+      localStorage.removeItem(providerStorageKey);
+    }
+    // Clean up legacy key to prevent ambiguity
+    localStorage.removeItem('newsly_api_key');
+  }
 }
 
 /**

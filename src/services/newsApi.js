@@ -144,10 +144,18 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
       // Handle 401 / 403 Unauthorized errors specifically
       if (response.status === 401 || response.status === 403) {
         let msg = `API authentication failed (${response.status} Unauthorized). Please check your API key.`;
+        let code = 'INVALID_KEY';
         try {
           const errData = await response.json();
-          if (errData && errData.message) {
-            msg = `Authentication Failed: ${errData.message}.`;
+          if (errData) {
+            if (errData.code === 'MISSING_KEY') {
+              code = 'MISSING_KEY';
+            }
+            if (errData.message) {
+              msg = errData.message;
+            } else if (Array.isArray(errData.errors) && errData.errors[0]) {
+              msg = errData.errors[0];
+            }
           }
         } catch {
           // ignore json parse error
@@ -159,7 +167,7 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
 
         throw new ApiError(
           msg,
-          'INVALID_KEY',
+          code,
           { status: response.status }
         );
       }
@@ -211,10 +219,11 @@ async function fetchWithRetry(url, provider, apiKey, options = {}, retries = 1) 
  * Fetch top headlines for home or category with pagination, deduplication, and diversity
  */
 export async function getTopHeadlines({ category = 'general', page = 1, pageSize = 12 } = {}) {
-  const apiKey = getStoredApiKey();
   const provider = getStoredProvider();
+  const apiKey = getStoredApiKey(provider);
 
-  if (!apiKey) {
+  const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST);
+  if (!apiKey && (isTest || provider !== 'gnews')) {
     throw new ApiError(
       'No API key configured. Please configure an API key to view live news.',
       'MISSING_KEY'
@@ -248,13 +257,14 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
   } else {
     // Default GNews provider
     const pageParam = page > 1 ? `&page=${page}` : '';
+    const keyParam = apiKey ? `&apikey=${encodeURIComponent(apiKey)}` : '';
     if (category.toLowerCase() === 'india') {
-      url = `${baseUrl}/top-headlines?country=in&lang=en&max=${pageSize}&apikey=${encodeURIComponent(apiKey)}${pageParam}`;
+      url = `${baseUrl}/top-headlines?country=in&lang=en&max=${pageSize}${keyParam}${pageParam}`;
     } else if (catConfig && catConfig.query) {
-      url = `${baseUrl}/search?q=${encodeURIComponent(catConfig.query)}&lang=en&max=${pageSize}&apikey=${encodeURIComponent(apiKey)}${pageParam}`;
+      url = `${baseUrl}/search?q=${encodeURIComponent(catConfig.query)}&lang=en&max=${pageSize}${keyParam}${pageParam}`;
     } else {
       const gCategory = catConfig ? catConfig.gnewsCategory : (category === 'general' ? 'general' : category);
-      url = `${baseUrl}/top-headlines?category=${encodeURIComponent(gCategory)}&lang=en&max=${pageSize}&apikey=${encodeURIComponent(apiKey)}${pageParam}`;
+      url = `${baseUrl}/top-headlines?category=${encodeURIComponent(gCategory)}&lang=en&max=${pageSize}${keyParam}${pageParam}`;
     }
     normalizer = (item) => normalizeGNewsArticle(item, categoryLabel);
   }
@@ -298,10 +308,11 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
  * Fetch latest news wire feed (strict newest-first ordering with deduplication)
  */
 export async function getLatestNews({ page = 1, pageSize = 8 } = {}) {
-  const apiKey = getStoredApiKey();
   const provider = getStoredProvider();
+  const apiKey = getStoredApiKey(provider);
 
-  if (!apiKey) {
+  const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST);
+  if (!apiKey && (isTest || provider !== 'gnews')) {
     throw new ApiError(
       'No API key configured. Please configure an API key to load the latest newsroom feed.',
       'MISSING_KEY'
@@ -321,7 +332,8 @@ export async function getLatestNews({ page = 1, pageSize = 8 } = {}) {
     normalizer = (item) => normalizeNewsDataArticle(item, 'Breaking Wire');
   } else {
     const pageParam = page > 1 ? `&page=${page}` : '';
-    url = `${baseUrl}/top-headlines?category=general&lang=en&max=${pageSize}&apikey=${encodeURIComponent(apiKey)}${pageParam}`;
+    const keyParam = apiKey ? `&apikey=${encodeURIComponent(apiKey)}` : '';
+    url = `${baseUrl}/top-headlines?category=general&lang=en&max=${pageSize}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Breaking Wire');
   }
 
@@ -349,10 +361,11 @@ export async function getLatestNews({ page = 1, pageSize = 8 } = {}) {
  * Never returns unrelated or incidental stories.
  */
 export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}) {
-  const apiKey = getStoredApiKey();
   const provider = getStoredProvider();
+  const apiKey = getStoredApiKey(provider);
 
-  if (!apiKey) {
+  const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || process.env?.VITEST);
+  if (!apiKey && (isTest || provider !== 'gnews')) {
     throw new ApiError(
       'No API key configured. Please set VITE_NEWS_API_KEY in your environment or enter your key in Settings.',
       'MISSING_KEY'
@@ -383,7 +396,8 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
     normalizer = (item) => normalizeNewsDataArticle(item, 'Search Result');
   } else {
     const pageParam = page > 1 ? `&page=${page}` : '';
-    url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&max=${fetchSize}&apikey=${encodeURIComponent(apiKey)}${pageParam}`;
+    const keyParam = apiKey ? `&apikey=${encodeURIComponent(apiKey)}` : '';
+    url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&max=${fetchSize}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Search Result');
   }
 

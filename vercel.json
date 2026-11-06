@@ -1,0 +1,30 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/gnews/top-headlines",
+      "destination": "/api/gnews?endpoint=top-headlines"
+    },
+    {
+      "source": "/api/gnews/search",
+      "destination": "/api/gnews?endpoint=search"
+    },
+    {
+      "source": "/api/gnews/:endpoint*",
+      "destination": "/api/gnews?endpoint=:endpoint*"
+    },
+    {
+      "source": "/api/guardian/:path*",
+      "destination": "/api/guardian?path=:path*"
+    },
+    {
+      "source": "/api/newsdata/:path*",
+      "destination": "/api/newsdata?path=:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
