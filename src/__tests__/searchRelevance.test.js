@@ -5,6 +5,7 @@ import {
   filterAndRankSearchResults,
   deduplicateArticles,
   diversifyPublishers,
+  isArticleRelevantToCategory,
 } from '../utils/searchRelevance';
 
 describe('Search Relevance & Query Processing Engine', () => {
@@ -249,6 +250,84 @@ describe('Search Relevance & Query Processing Engine', () => {
       expect(diversified).toHaveLength(5);
       // The 3rd item should not be Guardian because Reuters should be inserted
       expect(diversified[2].source.name).toBe('Reuters');
+    });
+  });
+
+  describe('Regional Entity Detection & Disambiguation', () => {
+    it('detects AP Politics query and handles query expansion', () => {
+      const q = processSearchQuery('AP Politics');
+      expect(q.entityType).toBe('ANDHRA_PRADESH');
+      expect(q.effectiveProviderQuery).toContain('Andhra Pradesh');
+    });
+
+    it('rejects Arunachal Pradesh stories for Andhra Pradesh queries', () => {
+      const query = processSearchQuery('Andhra Pradesh');
+      const arunachalStory = {
+        title: 'Arunachal Pradesh launches highway connectivity initiative across remote sectors',
+        description: 'Chief Minister inaugurates infrastructure development projects in Itanagar.',
+        source: { name: 'Times of India' },
+      };
+
+      const res = scoreArticleRelevance(arunachalStory, query);
+      expect(res.isRelevant).toBe(false);
+    });
+
+    it('rejects Associated Press US political wire reports for AP politics queries', () => {
+      const query = processSearchQuery('AP Politics');
+      const wireStory = {
+        title: 'Associated Press: US Senate debates federal budget allocations on Capitol Hill',
+        description: 'WASHINGTON (AP) — Congressional leaders reached temporary compromise on discretionary spending.',
+        source: { name: 'Associated Press' },
+      };
+
+      const res = scoreArticleRelevance(wireStory, query);
+      expect(res.isRelevant).toBe(false);
+    });
+  });
+
+  describe('isArticleRelevantToCategory (Strict Category Isolation)', () => {
+    it('verifies Andhra Pradesh category stories', () => {
+      const apStory = {
+        title: 'Amaravati capital development authority approves smart city roadmap',
+        description: 'Andhra Pradesh government commits infrastructure budget for state capital.',
+      };
+      expect(isArticleRelevantToCategory(apStory, 'andhra-pradesh')).toBe(true);
+
+      const foreignStory = {
+        title: 'German Chancellor meets French President in Paris for bilateral trade summit',
+        description: 'European leaders discuss energy subsidies and industrial competitiveness.',
+      };
+      expect(isArticleRelevantToCategory(foreignStory, 'andhra-pradesh')).toBe(false);
+    });
+
+    it('verifies AI and Technology category isolation', () => {
+      const aiStory = {
+        title: 'New multi-modal transformer achieves state of the art in reasoning',
+        description: 'Researchers publish neural network architecture for mathematical proof discovery.',
+      };
+      expect(isArticleRelevantToCategory(aiStory, 'ai')).toBe(true);
+      expect(isArticleRelevantToCategory(aiStory, 'technology')).toBe(true);
+
+      const celebrityStory = {
+        title: 'Hollywood actor announces world concert tour following album release',
+        description: 'Tickets go on sale next Friday for arena shows across Europe and America.',
+      };
+      expect(isArticleRelevantToCategory(celebrityStory, 'ai')).toBe(false);
+      expect(isArticleRelevantToCategory(celebrityStory, 'technology')).toBe(false);
+    });
+
+    it('verifies India category stories', () => {
+      const indiaStory = {
+        title: 'Reserve Bank of India maintains repo rate at current levels',
+        description: 'Monetary policy committee in New Delhi projects solid GDP growth trajectory.',
+      };
+      expect(isArticleRelevantToCategory(indiaStory, 'india')).toBe(true);
+
+      const ukStory = {
+        title: 'Bank of England raises interest rates to curb inflation pressures in London',
+        description: 'British policymakers signal cautious outlook for consumer spending.',
+      };
+      expect(isArticleRelevantToCategory(ukStory, 'india')).toBe(false);
     });
   });
 });

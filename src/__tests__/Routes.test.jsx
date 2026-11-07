@@ -36,7 +36,7 @@ describe('Full Route Verification', () => {
   it('renders HomePage on / with brand title and masthead', async () => {
     await renderAppWithRoute('/');
     expect(screen.getAllByText(/NEWS/i)[0]).toBeInTheDocument();
-    expect(screen.getByText(/Connect Your Real-Time News Feed/i)).toBeInTheDocument();
+    expect(screen.getByText(/Global Edition/i)).toBeInTheDocument();
   });
 
   it('renders CategoryPage on /category/technology', async () => {
@@ -67,10 +67,10 @@ describe('Full Route Verification', () => {
     expect(screen.getByText(/Your Reading List is Empty/i)).toBeInTheDocument();
   });
 
-  it('renders SettingsPage on /settings with API configuration options', async () => {
+  it('renders SettingsPage on /settings with reading preferences', async () => {
     await renderAppWithRoute('/settings');
-    expect(screen.getByText(/Newsroom Settings/i)).toBeInTheDocument();
-    expect(screen.getByText(/REST API Configuration/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reading Preferences/i)).toBeInTheDocument();
+    expect(screen.getByText(/Editorial Appearance/i)).toBeInTheDocument();
   });
 
   it('renders NotFoundPage on unknown route /unknown-route-test', async () => {

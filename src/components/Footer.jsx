@@ -1,12 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CATEGORIES } from '../services/apiConfig';
-import { useApiKey } from '../context/ApiKeyContext';
-import { ShieldCheck, Heart } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function Footer() {
-  const { providerDetails, openConfigModal } = useApiKey();
-
   return (
     <footer className="site-footer">
       <div className="container">
@@ -22,7 +18,7 @@ export default function Footer() {
             </p>
             <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: '#94a3b8' }}>
               <ShieldCheck size={16} color="var(--accent)" />
-              <span>Real-Time REST API Integration</span>
+              <span>Accredited Global News Dispatches</span>
             </div>
           </div>
 
@@ -32,6 +28,7 @@ export default function Footer() {
             <ul className="footer-links">
               <li><Link to="/category/world">World Affairs</Link></li>
               <li><Link to="/category/india">India Coverage</Link></li>
+              <li><Link to="/category/andhra-pradesh">Andhra Pradesh</Link></li>
               <li><Link to="/category/technology">Technology</Link></li>
               <li><Link to="/category/ai">Artificial Intelligence</Link></li>
               <li><Link to="/category/business">Business & Finance</Link></li>
@@ -50,21 +47,19 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Technology & Attribution */}
+          {/* Column 4: Editorial Standards */}
           <div>
-            <h4 className="footer-heading">Data & Attribution</h4>
+            <h4 className="footer-heading">Editorial Integrity</h4>
             <p style={{ fontSize: '0.8125rem', color: '#94a3b8', lineHeight: '1.6', marginBottom: '1rem' }}>
-              All articles and imagery are fetched dynamically from accredited news feeds via{' '}
-              <strong style={{ color: '#ffffff' }}>{providerDetails.name}</strong>.
+              NEWSLY adheres to strict factual verification and ethical reporting. All dispatches, images, and headlines represent authentic journalistic coverage curated for global readers.
             </p>
-            <button
-              type="button"
-              onClick={openConfigModal}
+            <Link
+              to="/search"
               className="btn btn-outline"
               style={{ fontSize: '0.75rem', borderColor: '#334155', color: '#f8fafc' }}
             >
-              Configure API Feed
-            </button>
+              Search Newsroom Archive
+            </Link>
           </div>
         </div>
 
@@ -74,7 +69,9 @@ export default function Footer() {
             © {new Date().getFullYear()} NEWSLY Media. All rights reserved. Built with precision for digital readers.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Link to="/settings">API Settings</Link>
+            <Link to="/">Front Page</Link>
+            <span>•</span>
+            <Link to="/search">Search</Link>
             <span>•</span>
             <Link to="/bookmarks">Saved Stories</Link>
           </div>

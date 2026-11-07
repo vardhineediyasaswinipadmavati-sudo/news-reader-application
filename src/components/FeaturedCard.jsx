@@ -28,25 +28,22 @@ export default function FeaturedCard({ article, className = '' }) {
     );
   };
 
+  const hasImage = Boolean(article.imageUrl && !imageError);
+
   return (
-    <article className={`featured-hero-card animate-fade-in ${className}`}>
-      <div className="featured-hero-image-wrap">
-        <Link to={articleDetailPath} state={{ article }} tabIndex={-1} aria-hidden="true">
-          {article.imageUrl && !imageError ? (
+    <article className={`featured-hero-card ${hasImage ? '' : 'text-only-lead'} animate-fade-in ${className}`}>
+      {hasImage && (
+        <div className="featured-hero-image-wrap">
+          <Link to={articleDetailPath} state={{ article }} tabIndex={-1} aria-hidden="true">
             <img
               src={article.imageUrl}
               alt={article.title}
               className="featured-hero-image"
               onError={() => setImageError(true)}
             />
-          ) : (
-            <div className="image-placeholder" style={{ minHeight: '260px' }}>
-              <Newspaper size={48} className="image-placeholder-icon" />
-              <span className="image-placeholder-text">Lead Editorial Coverage</span>
-            </div>
-          )}
-        </Link>
-      </div>
+          </Link>
+        </div>
+      )}
 
       <div className="featured-hero-content">
         <div className="card-meta-top">

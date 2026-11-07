@@ -1,193 +1,123 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  SlidersHorizontal,
-  Key,
-  ExternalLink,
-  Check,
-  RotateCcw,
   Sun,
   Moon,
   Trash2,
-  ShieldAlert,
+  Shield,
+  Palette,
 } from 'lucide-react';
-import { useApiKey } from '../context/ApiKeyContext';
 import { useTheme } from '../context/ThemeContext';
 import { useBookmarks } from '../context/BookmarksContext';
-import { PROVIDERS } from '../services/apiConfig';
-import { clearApiCache } from '../services/newsApi';
 import { useToast } from '../components/Toast';
 
 export default function SettingsPage() {
-  const { apiKey, provider, setApiKey, setProvider, getApiKeyForProvider } = useApiKey();
   const { theme, toggleTheme } = useTheme();
   const { bookmarks, clearBookmarks } = useBookmarks();
   const { addToast } = useToast();
 
-  const [selectedProvider, setSelectedProvider] = useState(provider || 'gnews');
-  const [inputKey, setInputKey] = useState(() => {
-    return (getApiKeyForProvider ? getApiKeyForProvider(provider || 'gnews') : apiKey) || '';
-  });
-  const [savedSuccess, setSavedSuccess] = useState(false);
-
   React.useEffect(() => {
-    document.title = 'Settings & API Configuration — NEWSLY';
+    document.title = 'Reading Preferences — NEWSLY';
   }, []);
 
-  const handleSaveApi = (e) => {
-    e.preventDefault();
-    setProvider(selectedProvider);
-    setApiKey(inputKey.trim(), selectedProvider);
-    setSavedSuccess(true);
-    addToast('API configuration updated successfully', 'success');
-    setTimeout(() => setSavedSuccess(false), 2000);
-  };
-
-  const handleClearCache = () => {
-    clearApiCache();
-    addToast('In-memory news cache cleared', 'info');
-  };
-
   const handleClearAllStorage = () => {
-    if (window.confirm('Are you sure you want to clear your saved bookmarks and local preferences?')) {
+    if (window.confirm('Are you sure you want to clear your saved reading list?')) {
       clearBookmarks();
-      addToast('Bookmarks cleared', 'info');
+      addToast('Reading list cleared', 'info');
     }
   };
 
-  const activeProvider = PROVIDERS[selectedProvider] || PROVIDERS.gnews;
-
   return (
-    <div className="container" style={{ paddingTop: '1.75rem', maxWidth: '800px' }}>
-      <div className="section-header">
+    <div className="container" style={{ paddingTop: '2rem', maxWidth: '760px', paddingBottom: '4rem' }}>
+      <div className="section-header" style={{ marginBottom: '2rem' }}>
         <div>
           <span className="category-tag">Preferences</span>
           <h1 className="section-title">
-            <SlidersHorizontal size={22} color="var(--accent)" /> Newsroom Settings
+            <Palette size={20} color="var(--accent)" /> Reading Preferences
           </h1>
         </div>
       </div>
 
-      {/* 1. API Credentials Card */}
-      <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.75rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
-          <Key size={18} color="var(--accent)" />
-          <h2 className="editorial-headline" style={{ fontSize: '1.25rem' }}>REST API Configuration</h2>
-        </div>
-
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-          NEWSLY connects to authentic news APIs. You can provide an API key here (persisted in LocalStorage) or configure <code>VITE_NEWS_API_KEY</code> in your local <code>.env</code> file.
-        </p>
-
-        <form onSubmit={handleSaveApi}>
-          <div className="form-group" style={{ marginBottom: '1rem' }}>
-            <label htmlFor="settings-provider" className="form-label">
-              API Provider
-            </label>
-            <select
-              id="settings-provider"
-              className="form-select"
-              value={selectedProvider}
-              onChange={(e) => {
-                const nextP = e.target.value;
-                setSelectedProvider(nextP);
-                const existingKey = getApiKeyForProvider ? getApiKeyForProvider(nextP) : '';
-                setInputKey(existingKey || '');
-              }}
-            >
-              <option value="gnews">GNews.io (Global & Regional Headlines)</option>
-              <option value="guardian">The Guardian Open Platform</option>
-              <option value="newsdata">NewsData.io</option>
-            </select>
-          </div>
-
-          <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-            <label htmlFor="settings-key" className="form-label">
-              {activeProvider.name} Key
-            </label>
-            <input
-              id="settings-key"
-              type="text"
-              className="form-input"
-              placeholder="Enter your API key..."
-              value={inputKey}
-              onChange={(e) => setInputKey(e.target.value)}
-            />
-          </div>
-
-          <div className="info-box" style={{ marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Need a key?</strong>
-              <a
-                href={activeProvider.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent)', fontWeight: 600 }}
-              >
-                Sign up at {activeProvider.name} <ExternalLink size={12} />
-              </a>
-            </div>
-            <p>Free tier allows {activeProvider.freeLimit}. Register at the link above to generate your instant personal API key.</p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button type="submit" className="btn btn-accent">
-              {savedSuccess ? <><Check size={16} /> Saved</> : 'Update API Credentials'}
-            </button>
-            <button type="button" onClick={handleClearCache} className="btn btn-outline">
-              <RotateCcw size={14} /> Clear Cache
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* 2. Visual Theme & Reading Experience */}
+      {/* 1. Theme Selection */}
       <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.75rem', marginBottom: '2rem' }}>
         <h2 className="editorial-headline" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
           Editorial Appearance
         </h2>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-          Choose between traditional morning parchment (Light) or midnight ink (Dark).
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+          Choose between traditional morning parchment (Light) or midnight ink (Dark) for optimal reading comfort.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
           <div>
-            <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
-              Current Theme: {theme === 'dark' ? 'Midnight Ink (Dark)' : 'Morning Edition (Light)'}
+            <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+              Current Theme: {theme === 'dark' ? 'Midnight Ink (Dark Edition)' : 'Morning Parchment (Light Edition)'}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Automatically preserved across browser reloads
+              Your preference is automatically remembered on this device
             </div>
-          </div>
-          <button type="button" onClick={toggleTheme} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            {theme === 'dark' ? <><Sun size={15} /> Switch to Light</> : <><Moon size={15} /> Switch to Dark</>}
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Storage & Privacy */}
-      <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.75rem', marginBottom: '2.5rem' }}>
-        <h2 className="editorial-headline" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
-          Data & Local Storage
-        </h2>
-        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-          NEWSLY does not require accounts or passwords. All bookmarks and theme selections reside strictly within your client browser.
-        </p>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Saved Bookmarks: </span>
-            <span style={{ fontSize: '0.875rem', color: 'var(--accent)', fontWeight: 700 }}>{bookmarks.length} articles</span>
           </div>
 
           <button
             type="button"
-            onClick={handleClearAllStorage}
+            onClick={toggleTheme}
             className="btn btn-outline"
-            style={{ color: 'var(--accent)', borderColor: 'var(--border-color)', fontSize: '0.75rem' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            <Trash2 size={13} /> Reset Bookmarks
+            {theme === 'dark' ? (
+              <>
+                <Sun size={15} /> Switch to Light
+              </>
+            ) : (
+              <>
+                <Moon size={15} /> Switch to Dark
+              </>
+            )}
           </button>
         </div>
+      </div>
+
+      {/* 2. Reading List Management */}
+      <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.75rem', marginBottom: '2rem' }}>
+        <h2 className="editorial-headline" style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+          Reading List & Saved Stories
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+          Manage articles saved to your personal reading list.
+        </p>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)' }}>
+          <div>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              Saved Articles: <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{bookmarks.length}</span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Articles remain available across your browser sessions
+            </div>
+          </div>
+
+          {bookmarks.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearAllStorage}
+              className="btn btn-outline"
+              style={{ color: 'var(--accent)', borderColor: 'var(--border-color)', fontSize: '0.8125rem' }}
+            >
+              <Trash2 size={14} /> Clear Reading List
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Reader Privacy & Storage */}
+      <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '1.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <Shield size={18} color="var(--accent)" />
+          <h2 className="editorial-headline" style={{ fontSize: '1.25rem' }}>
+            Reader Privacy
+          </h2>
+        </div>
+        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          NEWSLY does not require accounts, passwords, or personal tracking. Your reading list, theme selection, and dispatches are stored strictly inside your browser's private local storage.
+        </p>
       </div>
     </div>
   );

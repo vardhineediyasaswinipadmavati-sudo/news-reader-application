@@ -225,6 +225,7 @@ export default function HomePage() {
                 {[
                   { to: '/category/world', label: 'World Affairs' },
                   { to: '/category/india', label: 'India National' },
+                  { to: '/category/andhra-pradesh', label: 'Andhra Pradesh' },
                   { to: '/category/technology', label: 'Technology' },
                   { to: '/category/ai', label: 'Artificial Intelligence' },
                   { to: '/category/business', label: 'Global Economy' },

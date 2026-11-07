@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import ApiKeyModal from './components/ApiKeyModal';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -29,7 +28,6 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-      <ApiKeyModal />
     </div>
   );
 }

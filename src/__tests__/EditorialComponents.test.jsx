@@ -4,8 +4,10 @@ import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import BreakingTicker from '../components/BreakingTicker';
 import LatestNewsRail from '../components/LatestNewsRail';
+import EditorialGrid from '../components/EditorialGrid';
 import ApiConfigHero from '../components/ApiConfigHero';
 import { ApiKeyProvider } from '../context/ApiKeyContext';
+import { BookmarksProvider } from '../context/BookmarksContext';
 import { ToastProvider } from '../components/Toast';
 
 const mockArticle = {
@@ -68,5 +70,21 @@ describe('Editorial News Components', () => {
 
     const registerLink = screen.getByText(/Register Free Key/i);
     expect(registerLink).toBeInTheDocument();
+  });
+
+  it('renders a single article in a balanced single-story-wrapper without stretching', () => {
+    const { container } = render(
+      <BrowserRouter>
+        <BookmarksProvider>
+          <ToastProvider>
+            <EditorialGrid articles={[mockArticle]} />
+          </ToastProvider>
+        </BookmarksProvider>
+      </BrowserRouter>
+    );
+
+    const singleWrapper = container.querySelector('.single-story-wrapper');
+    expect(singleWrapper).toBeInTheDocument();
+    expect(singleWrapper).toHaveStyle({ maxWidth: '680px' });
   });
 });

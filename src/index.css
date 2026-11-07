@@ -181,6 +181,20 @@ input, textarea, select {
   }
 }
 
+@media (max-width: 480px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
 /* Newspaper rules / dividers */
 .rule-thin {
   height: 1px;

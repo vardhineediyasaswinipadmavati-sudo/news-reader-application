@@ -12,6 +12,8 @@ import EmptyState from '../components/EmptyState';
 const CATEGORY_DESCRIPTIONS = {
   world: 'In-depth international reporting, geopolitics, and global developments.',
   india: 'Key national headlines, governance, economy, and society across India.',
+  'andhra-pradesh': 'Regional political coverage, state governance, Amaravati capital development, and dispatches across Andhra Pradesh.',
+  ap: 'Regional political coverage, state governance, Amaravati capital development, and dispatches across Andhra Pradesh.',
   technology: 'Breakthroughs in hardware, software, cybersecurity, and digital infrastructure.',
   ai: 'Frontier developments in generative AI, machine intelligence, and machine learning.',
   business: 'Global financial markets, corporate strategy, venture capital, and economic indicators.',
@@ -32,13 +34,14 @@ export default function CategoryPage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Match category
+  // Match category (including 'ap' shorthand)
+  const normalizedCategoryId = (categoryId || '').toLowerCase() === 'ap' ? 'andhra-pradesh' : (categoryId || '').toLowerCase();
   const activeCategory = CATEGORIES.find(
-    (c) => c.id.toLowerCase() === (categoryId || '').toLowerCase()
+    (c) => c.id.toLowerCase() === normalizedCategoryId
   );
 
   const categoryName = activeCategory ? activeCategory.label : 'Category News';
-  const categoryDesc = CATEGORY_DESCRIPTIONS[categoryId?.toLowerCase()] || 'Latest editorial coverage.';
+  const categoryDesc = CATEGORY_DESCRIPTIONS[normalizedCategoryId] || 'Latest editorial coverage.';
 
   const fetchCategoryNews = useCallback(async () => {
     if (!categoryId) return;

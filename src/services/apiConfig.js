@@ -5,6 +5,7 @@
 export const CATEGORIES = [
   { id: 'world', label: 'World', gnewsCategory: 'world', guardianSection: 'world' },
   { id: 'india', label: 'India', gnewsCategory: 'nation', query: 'India', guardianSection: 'world' },
+  { id: 'andhra-pradesh', label: 'Andhra Pradesh', gnewsCategory: 'nation', query: '"Andhra Pradesh" OR Amaravati OR Visakhapatnam OR "AP government"', guardianSection: 'world' },
   { id: 'technology', label: 'Technology', gnewsCategory: 'technology', guardianSection: 'technology' },
   { id: 'ai', label: 'Artificial Intelligence', query: 'Artificial Intelligence OR AI', gnewsCategory: 'technology', guardianSection: 'technology' },
   { id: 'business', label: 'Business', gnewsCategory: 'business', guardianSection: 'business' },

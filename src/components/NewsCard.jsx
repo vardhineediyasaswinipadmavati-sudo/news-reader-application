@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bookmark, Clock, Newspaper, ArrowUpRight } from 'lucide-react';
+import { Bookmark, Clock, ArrowUpRight } from 'lucide-react';
 import { formatRelativeTime } from '../utils/dateFormatter';
 import { useBookmarks } from '../context/BookmarksContext';
 import { useToast } from './Toast';
@@ -30,12 +30,13 @@ export default function NewsCard({
   };
 
   const articleDetailPath = `/article/${encodeURIComponent(article.id)}`;
+  const hasImage = Boolean(article.imageUrl && !imageError);
 
   if (variant === 'compact') {
     return (
-      <article className={`news-card-compact ${className}`}>
-        <div className="news-card-compact-image-wrap">
-          {article.imageUrl && !imageError ? (
+      <article className={`news-card-compact ${hasImage ? '' : 'text-only-card'} ${className}`}>
+        {hasImage && (
+          <div className="news-card-compact-image-wrap">
             <img
               src={article.imageUrl}
               alt={article.title}
@@ -43,12 +44,8 @@ export default function NewsCard({
               loading="lazy"
               onError={() => setImageError(true)}
             />
-          ) : (
-            <div className="image-placeholder">
-              <Newspaper size={18} className="image-placeholder-icon" />
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="news-card-compact-content">
           <span className="category-tag" style={{ fontSize: '0.625rem', marginBottom: '0.2rem' }}>
@@ -69,10 +66,10 @@ export default function NewsCard({
   }
 
   return (
-    <article className={`news-card-standard animate-fade-in ${className}`}>
-      <div className="news-card-image-wrap">
-        <Link to={articleDetailPath} state={{ article }} tabIndex={-1} aria-hidden="true">
-          {article.imageUrl && !imageError ? (
+    <article className={`news-card-standard ${hasImage ? '' : 'text-only-card'} animate-fade-in ${className}`}>
+      {hasImage && (
+        <div className="news-card-image-wrap">
+          <Link to={articleDetailPath} state={{ article }} tabIndex={-1} aria-hidden="true">
             <img
               src={article.imageUrl}
               alt={article.title}
@@ -80,14 +77,9 @@ export default function NewsCard({
               loading="lazy"
               onError={() => setImageError(true)}
             />
-          ) : (
-            <div className="image-placeholder">
-              <Newspaper size={28} className="image-placeholder-icon" />
-              <span className="image-placeholder-text">{article.category || 'Editorial'}</span>
-            </div>
-          )}
-        </Link>
-      </div>
+          </Link>
+        </div>
+      )}
 
       <div className="news-card-content">
         <div className="card-meta-top">

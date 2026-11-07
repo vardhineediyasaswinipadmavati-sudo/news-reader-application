@@ -5,6 +5,7 @@ import {
   filterAndRankSearchResults,
   deduplicateArticles,
   diversifyPublishers,
+  isArticleRelevantToCategory,
 } from '../utils/searchRelevance';
 
 // In-memory request cache to avoid duplicate API calls
@@ -323,8 +324,13 @@ export async function getTopHeadlines({ category = 'general', page = 1, pageSize
   // Deduplicate identical or syndication-copied stories
   const deduped = deduplicateArticles(normalized);
 
+  // Apply strict category isolation if a specific desk is requested
+  const isolated = category.toLowerCase() === 'general'
+    ? deduped
+    : deduped.filter((a) => isArticleRelevantToCategory(a, category));
+
   // Sort descending by date (newest first)
-  const sorted = sortByDateDescending(deduped);
+  const sorted = sortByDateDescending(isolated);
 
   // Apply publisher diversity so readers see multiple outlets
   const diversified = diversifyPublishers(sorted, 2);

@@ -4,15 +4,12 @@ import {
   Bookmark,
   Menu,
   X,
-  SlidersHorizontal,
-  Key,
   Globe2,
   Compass,
   Search,
 } from 'lucide-react';
 import { getMastheadDate } from '../utils/dateFormatter';
 import { useBookmarks } from '../context/BookmarksContext';
-import { useApiKey } from '../context/ApiKeyContext';
 import { CATEGORIES } from '../services/apiConfig';
 import ThemeToggle from './ThemeToggle';
 import SearchBar from './SearchBar';
@@ -22,7 +19,6 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { bookmarkCount } = useBookmarks();
-  const { hasApiKey, providerDetails, openConfigModal } = useApiKey();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -69,23 +65,12 @@ export default function Navbar() {
             </span>
           </div>
 
-          {/* Right: Search, API Status, Bookmarks, Theme Toggle, Settings */}
+          {/* Right: Search, Bookmarks, Theme Toggle */}
           <div className="top-meta-right">
             {/* Desktop Integrated Search Bar (Single instance) */}
             <div className="masthead-search-wrap">
               <SearchBar placeholder="Search news..." />
             </div>
-
-            {/* API Status Pill */}
-            <button
-              type="button"
-              onClick={openConfigModal}
-              className={`api-status-badge ${hasApiKey ? 'active' : 'warning'}`}
-              title="Configure News API Provider & Key"
-            >
-              <Key size={11} />
-              <span>{hasApiKey ? providerDetails.name : 'API Setup'}</span>
-            </button>
 
             {/* Bookmarks (Single instance) */}
             <Link
@@ -100,16 +85,6 @@ export default function Navbar() {
 
             {/* Theme Toggle (Single instance) */}
             <ThemeToggle />
-
-            {/* Settings & Credentials */}
-            <Link
-              to="/settings"
-              className="btn-icon"
-              aria-label="Newsly Settings"
-              title="Settings & API"
-            >
-              <SlidersHorizontal size={15} />
-            </Link>
           </div>
         </div>
       </div>
@@ -253,16 +228,6 @@ export default function Navbar() {
                   <Bookmark size={15} /> Saved Stories
                 </span>
                 {bookmarkCount > 0 && <span className="badge-count" style={{ position: 'static' }}>{bookmarkCount}</span>}
-              </NavLink>
-
-              <NavLink
-                to="/settings"
-                className={({ isActive }) => `mobile-drawer-link ${isActive ? 'active' : ''}`}
-                onClick={closeMobileMenu}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <SlidersHorizontal size={15} /> API & Preferences
-                </span>
               </NavLink>
             </div>
 

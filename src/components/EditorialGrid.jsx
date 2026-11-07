@@ -39,6 +39,15 @@ export default function EditorialGrid({
     );
   }
 
+  // If only one story exists, display in a compact, balanced layout rather than stretching
+  if (articles.length === 1) {
+    return (
+      <div className={`single-story-wrapper ${className}`} style={{ maxWidth: '680px', margin: '1rem auto' }}>
+        <NewsCard article={articles[0]} variant="standard" />
+      </div>
+    );
+  }
+
   // Standard multi-column grid
   return (
     <div className={columns === 4 ? 'news-cards-grid-4' : 'news-cards-grid'}>

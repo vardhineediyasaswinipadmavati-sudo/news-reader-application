@@ -10,13 +10,13 @@ import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
 
 const POPULAR_TOPICS = [
+  'AP Politics',
+  'Andhra Pradesh',
+  'India News',
   'Artificial Intelligence',
-  'India Economy',
-  'Semiconductors',
   'Clean Energy',
   'Global Markets',
-  'Quantum Computing',
-  'Space Exploration',
+  'Semiconductors',
   'Cybersecurity',
 ];
 
@@ -275,11 +275,17 @@ export default function SearchPage() {
       {/* Results Grid */}
       {!loading && !error && articles.length > 0 && (
         <>
-          <div className="news-cards-grid" style={{ marginTop: '1.5rem' }}>
-            {articles.map((art) => (
-              <NewsCard key={art.id} article={art} variant="standard" />
-            ))}
-          </div>
+          {articles.length === 1 ? (
+            <div className="single-story-wrapper" style={{ maxWidth: '680px', margin: '1.5rem auto' }}>
+              <NewsCard article={articles[0]} variant="standard" />
+            </div>
+          ) : (
+            <div className="news-cards-grid" style={{ marginTop: '1.5rem' }}>
+              {articles.map((art) => (
+                <NewsCard key={art.id} article={art} variant="standard" />
+              ))}
+            </div>
+          )}
 
           {/* Pagination: Load More Button */}
           {meta.hasMore && (

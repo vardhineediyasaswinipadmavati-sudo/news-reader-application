@@ -92,39 +92,75 @@ export function processSearchQuery(rawQuery) {
   let entityType = 'GENERIC';
   let effectiveProviderQuery = cleanQuery;
 
-  // 1. AP Elections / Andhra Pradesh Politics
-  // User queries like "AP elections", "AP election", "ap assembly", "ap polls", "andhra elections"
-  const isApElection =
-    (/\bap\s+(elections?|polls?|assembly|politics|results?)\b/i.test(cleanQuery) ||
-     /\b(elections?|polls?)\s+in\s+ap\b/i.test(cleanQuery) ||
-     /\bandhra(\s+pradesh)?\s+(elections?|polls?|assembly)\b/i.test(cleanQuery));
+  // 1. Andhra Pradesh Regional & Politics
+  const isApElections =
+    (/\bap\s+(elections?|polls?|assembly|results?)\b/i.test(cleanQuery) ||
+     /\b(elections?|polls?)\s+in\s+(ap|andhra(\s+pradesh)?)\b/i.test(cleanQuery) ||
+     /\bandhra(\s+pradesh)?\s+(assembly\s+polls?|elections?|polls?)\b/i.test(cleanQuery));
 
-  if (isApElection) {
+  const isAndhraPradeshQuery =
+    (/\b(andhra(\s+pradesh)?|amaravati|visakhapatnam|vijayawada|ysrcp|tdp|jagan|chandrababu|pawan\s+kalyan)\b/i.test(cleanQuery) ||
+     /\bap\s+(politics|political|government|govt|elections?|polls?|assembly|results?|cabinet|news|cm|schemes?)\b/i.test(cleanQuery) ||
+     /\b(elections?|polls?|politics|government)\s+in\s+(ap|andhra(\s+pradesh)?)\b/i.test(cleanQuery) ||
+     cleanQuery.trim().toLowerCase() === 'ap politics' ||
+     cleanQuery.trim().toLowerCase() === 'ap government' ||
+     cleanQuery.trim().toLowerCase() === 'andhra pradesh');
+
+  if (isApElections) {
     entityType = 'AP_ELECTIONS';
-    // For external search providers who mistake "AP" for "Associated Press",
-    // include "Andhra Pradesh" to retrieve genuine Indian state political coverage
-    effectiveProviderQuery = 'Andhra Pradesh elections OR AP assembly election';
+    effectiveProviderQuery = '"Andhra Pradesh" OR "AP elections" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP';
+  } else if (isAndhraPradeshQuery) {
+    entityType = 'ANDHRA_PRADESH';
+    effectiveProviderQuery = '"Andhra Pradesh" OR "AP politics" OR "AP government" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP';
   }
-  // 2. Tesla / TSLA
+  // 2. India National News
+  else if (
+    /\bindia\s+(news|breaking|national|politics|economy|updates?)\b/i.test(cleanQuery) ||
+    /\bindian?\s+(national\s+news|politics|government)\b/i.test(cleanQuery) ||
+    cleanQuery.trim().toLowerCase() === 'india news'
+  ) {
+    entityType = 'INDIA_NATIONAL';
+    effectiveProviderQuery = 'India national news OR "India news"';
+  }
+  // 3. Hyderabad News
+  else if (/\bhyderabad(\s+news)?\b/i.test(cleanQuery)) {
+    entityType = 'HYDERABAD';
+    effectiveProviderQuery = 'Hyderabad Telangana news';
+  }
+  // 4. World News
+  else if (/\b(world\s+news|international\s+news|global\s+affairs)\b/i.test(cleanQuery)) {
+    entityType = 'WORLD_NEWS';
+    effectiveProviderQuery = 'world international news';
+  }
+  // 5. Technology Desk
+  else if (
+    cleanQuery.trim().toLowerCase() === 'technology' ||
+    /\btechnology\s+news\b/i.test(cleanQuery) ||
+    cleanQuery.trim().toLowerCase() === 'tech news'
+  ) {
+    entityType = 'TECHNOLOGY';
+    effectiveProviderQuery = 'technology software hardware computing';
+  }
+  // 6. Tesla / TSLA
   else if (/\b(tesla|tsla|cybertruck)\b/i.test(cleanQuery)) {
     entityType = 'TESLA';
   }
-  // 3. Artificial Intelligence / AI
+  // 7. Artificial Intelligence / AI
   else if (
     /\b(artificial\s+intelligence|generative\s+ai|chatgpt|openai|anthropic|llm|llms|deep\s+learning|machine\s+learning)\b/i.test(cleanQuery) ||
     cleanQuery.trim().toLowerCase() === 'ai' ||
-    /\bai\s+(models?|chips?|safety|startups?|tools?|agents?)\b/i.test(cleanQuery)
+    /\bai\s+(models?|chips?|safety|startups?|tools?|agents?|news)\b/i.test(cleanQuery)
   ) {
     entityType = 'ARTIFICIAL_INTELLIGENCE';
   }
-  // 4. India Cricket
+  // 8. India Cricket
   else if (
     /\b(india\s+cricket|indian\s+cricket|bcci|ipl|team\s+india\s+cricket)\b/i.test(cleanQuery) ||
     (/\bcricket\b/i.test(cleanQuery) && /\bindia\b/i.test(cleanQuery))
   ) {
     entityType = 'INDIA_CRICKET';
   }
-  // 5. Semiconductor Industry
+  // 9. Semiconductor Industry
   else if (/\b(semiconductors?|chipmakers?|tsmc|nvidia\s+chips?|intel\s+foundry)\b/i.test(cleanQuery)) {
     entityType = 'SEMICONDUCTORS';
   }
@@ -163,19 +199,33 @@ export function scoreArticleRelevance(article, processedQuery) {
   // SPECIALIZED ENTITY DISAMBIGUATION RULES
   // -------------------------------------------------------------
 
-  // Rule 1: AP Elections (Andhra Pradesh vs Associated Press wire)
-  if (entityType === 'AP_ELECTIONS') {
+  // Rule 1: Andhra Pradesh / AP Regional & Politics
+  if (entityType === 'ANDHRA_PRADESH' || entityType === 'AP_ELECTIONS') {
+    // Explicit negative check: Arunachal Pradesh is NOT Andhra Pradesh
+    const isArunachal =
+      (containsPhrase(normTitle, 'arunachal') || containsPhrase(normDesc, 'arunachal')) &&
+      !containsPhrase(normTitle, 'andhra') && !containsPhrase(normDesc, 'andhra');
+    if (isArunachal) {
+      return {
+        score: 0,
+        isRelevant: false,
+        reason: 'Arunachal Pradesh story is not relevant to Andhra Pradesh',
+        isIncidental: true,
+      };
+    }
+
     const andhraKeywords = [
       'andhra', 'andhra pradesh', 'amaravati', 'ysrcp', 'tdp', 'jagan',
       'chandrababu', 'naidu', 'pawan kalyan', 'jana sena', 'vijayawada',
-      'visakhapatnam', 'ap assembly', 'ap election', 'ap elections',
-      'lok sabha', 'assembly polls', 'constituency', 'y s jagan'
+      'visakhapatnam', 'ap assembly', 'ap election', 'ap elections', 'ap politics',
+      'ap govt', 'ap government', 'ap cabinet', 'tirupati', 'guntur', 'kurnool',
+      'nellore', 'kadapa', 'anantapur', 'lok sabha', 'assembly polls', 'constituency', 'y s jagan'
     ];
 
     const hasAndhraContextInTitle = andhraKeywords.some((kw) => containsPhrase(normTitle, kw));
     const hasAndhraContextInBody = andhraKeywords.some((kw) => containsPhrase(normDesc, kw) || containsPhrase(normContent, kw));
 
-    // Check for false-positive wire agency: "Associated Press" or "(AP)" covering US/foreign elections
+    // Check for false-positive wire agency: "Associated Press" or "(AP)" covering US/foreign stories
     const isWireAttribution =
       normSource.includes('associated press') ||
       normSource.includes('ap news') ||
@@ -206,7 +256,7 @@ export function scoreArticleRelevance(article, processedQuery) {
       return {
         score: 0,
         isRelevant: false,
-        reason: 'Associated Press wire or unrelated foreign election without Andhra Pradesh context',
+        reason: 'Associated Press wire or unrelated foreign report without Andhra Pradesh context',
         isIncidental: true,
       };
     }
@@ -215,7 +265,7 @@ export function scoreArticleRelevance(article, processedQuery) {
       return {
         score: 95,
         isRelevant: true,
-        reason: 'Direct Andhra Pradesh election coverage in headline',
+        reason: 'Direct Andhra Pradesh coverage in headline',
         isIncidental: false,
       };
     }
@@ -224,7 +274,7 @@ export function scoreArticleRelevance(article, processedQuery) {
       return {
         score: 75,
         isRelevant: true,
-        reason: 'Andhra Pradesh political/election context confirmed in article',
+        reason: 'Andhra Pradesh regional context confirmed in article',
         isIncidental: false,
       };
     }
@@ -233,9 +283,61 @@ export function scoreArticleRelevance(article, processedQuery) {
     return {
       score: 0,
       isRelevant: false,
-      reason: 'No genuine Andhra Pradesh election connection found',
+      reason: 'No genuine Andhra Pradesh connection found',
       isIncidental: true,
     };
+  }
+
+  // Rule 2: India National News
+  if (entityType === 'INDIA_NATIONAL') {
+    const indianKeywords = [
+      'india', 'indian', 'delhi', 'new delhi', 'mumbai', 'modi', 'bjp', 'congress',
+      'parliament', 'lok sabha', 'rajya sabha', 'supreme court of india', 'isro',
+      'rbi', 'reserve bank of india', 'rupee', 'nirmala sitharaman', 'amit shah',
+      'rahul gandhi', 'indian army', 'indian railways'
+    ];
+
+    const isIndianaOrUnrelated =
+      (containsPhrase(normTitle, 'indiana') || containsPhrase(normTitle, 'indianapolis')) &&
+      !containsPhrase(normTitle, 'india');
+    if (isIndianaOrUnrelated) {
+      return { score: 0, isRelevant: false, reason: 'Refers to Indiana or Indianapolis, not India', isIncidental: true };
+    }
+
+    const hasIndiaInTitle = indianKeywords.some((kw) => containsWord(normTitle, kw) || containsPhrase(normTitle, kw));
+    const hasIndiaInDesc = indianKeywords.some((kw) => containsWord(normDesc, kw) || containsPhrase(normDesc, kw));
+
+    if (hasIndiaInTitle) {
+      return { score: 92, isRelevant: true, reason: 'Headline directly covers Indian national affairs', isIncidental: false };
+    }
+    if (hasIndiaInDesc) {
+      return { score: 72, isRelevant: true, reason: 'Article summary focuses on Indian national news', isIncidental: false };
+    }
+    return { score: 12, isRelevant: false, reason: 'Lacks genuine Indian national news substance', isIncidental: true };
+  }
+
+  // Rule 3: Hyderabad News
+  if (entityType === 'HYDERABAD') {
+    const hasHydInTitle = containsWord(normTitle, 'hyderabad') || containsPhrase(normTitle, 'hyderabad');
+    const hasHydInDesc = containsWord(normDesc, 'hyderabad') || containsPhrase(normDesc, 'telangana');
+    if (hasHydInTitle) return { score: 95, isRelevant: true, reason: 'Direct Hyderabad coverage in headline', isIncidental: false };
+    if (hasHydInDesc) return { score: 75, isRelevant: true, reason: 'Hyderabad / Telangana context confirmed', isIncidental: false };
+    return { score: 10, isRelevant: false, reason: 'No Hyderabad context found', isIncidental: true };
+  }
+
+  // Rule 4: Technology Desk
+  if (entityType === 'TECHNOLOGY') {
+    const techKeywords = [
+      'technology', 'tech', 'software', 'hardware', 'ai', 'artificial intelligence',
+      'semiconductor', 'chip', 'chips', 'computing', 'cybersecurity', 'internet',
+      'app', 'apps', 'smartphone', 'robotics', 'cloud', 'quantum', 'algorithm',
+      'gadget', 'crypto', 'blockchain', 'apple', 'google', 'microsoft', 'nvidia'
+    ];
+    const hasTechInTitle = techKeywords.some((kw) => containsWord(normTitle, kw) || containsPhrase(normTitle, kw));
+    const hasTechInDesc = techKeywords.some((kw) => containsWord(normDesc, kw) || containsPhrase(normDesc, kw));
+    if (hasTechInTitle) return { score: 88, isRelevant: true, reason: 'Headline focuses directly on technology', isIncidental: false };
+    if (hasTechInDesc) return { score: 68, isRelevant: true, reason: 'Article summary covers technology', isIncidental: false };
+    return { score: 18, isRelevant: false, reason: 'General business or politics without tech substance', isIncidental: true };
   }
 
   // Rule 2: Tesla
@@ -594,4 +696,67 @@ export function diversifyPublishers(articles, maxConsecutive = 2) {
 
   // Append any remaining deferred articles at the end
   return [...result, ...deferred];
+}
+
+/**
+ * Validate that an article genuinely matches a specific category desk to prevent contamination.
+ */
+export function isArticleRelevantToCategory(article, categoryId) {
+  if (!article || !categoryId) return true;
+  const id = categoryId.toLowerCase();
+  const title = article.title || '';
+  const desc = article.description || '';
+  const text = `${title} ${desc} ${article.content || ''}`.toLowerCase();
+
+  // 1. Andhra Pradesh Category Isolation
+  if (id === 'andhra-pradesh') {
+    // Explicit negative check: Arunachal Pradesh is NOT Andhra Pradesh
+    if (text.includes('arunachal') && !text.includes('andhra')) return false;
+
+    const apTerms = [
+      'andhra', 'andhra pradesh', 'amaravati', 'visakhapatnam', 'vijayawada',
+      'ysrcp', 'tdp', 'chandrababu', 'naidu', 'jagan', 'pawan kalyan', 'jana sena',
+      'ap govt', 'ap government', 'ap assembly', 'ap cabinet', 'tirupati', 'guntur',
+      'kurnool', 'nellore', 'kadapa', 'anantapur', 'y s jagan'
+    ];
+    return apTerms.some((t) => text.includes(t));
+  }
+
+  // 2. India Category Isolation
+  if (id === 'india') {
+    if (text.includes('indiana') && !text.includes('india')) return false;
+    const indiaTerms = [
+      'india', 'indian', 'delhi', 'new delhi', 'mumbai', 'modi', 'bjp', 'congress',
+      'lok sabha', 'parliament', 'isro', 'rbi', 'rupee', 'bengaluru', 'chennai',
+      'kolkata', 'hyderabad'
+    ];
+    return indiaTerms.some((t) => text.includes(t));
+  }
+
+  // 3. AI Category Isolation
+  if (id === 'ai') {
+    const aiTerms = [
+      'artificial intelligence', 'generative ai', 'openai', 'chatgpt', 'anthropic',
+      'claude', 'gemini', 'deepmind', 'llm', 'machine learning', 'neural network',
+      'deep learning', 'superintelligence', 'agi', 'copilot'
+    ];
+    const hasAiTerm = aiTerms.some((t) => text.includes(t));
+    const hasAiWord = containsWord(title, 'AI') || containsWord(desc, 'AI');
+    return hasAiTerm || hasAiWord;
+  }
+
+  // 4. Technology Isolation (filter out pure general politics or business with no tech)
+  if (id === 'technology') {
+    const techTerms = [
+      'technology', 'tech', 'software', 'hardware', 'ai', 'artificial intelligence',
+      'neural network', 'neural networks', 'transformer', 'deep learning', 'machine learning',
+      'model', 'models', 'superintelligence', 'semiconductor', 'chip', 'chips', 'computing',
+      'cybersecurity', 'internet', 'app', 'apps', 'smartphone', 'robotics', 'cloud', 'quantum',
+      'algorithm', 'gadget', 'crypto', 'blockchain', 'apple', 'google', 'microsoft', 'nvidia',
+      'meta', 'samsung', 'intel', 'amd', 'telecom', 'code', 'data center'
+    ];
+    return techTerms.some((t) => text.includes(t));
+  }
+
+  return true;
 }

@@ -19,7 +19,7 @@ const testArticle = {
 
 describe('NewsCard Component', () => {
   it('renders article headline, description, category, and source', () => {
-    render(
+    const { container } = render(
       <BrowserRouter>
         <BookmarksProvider>
           <ToastProvider>
@@ -33,5 +33,32 @@ describe('NewsCard Component', () => {
     expect(screen.getByText(/Solar efficiency reaches record highs/)).toBeInTheDocument();
     expect(screen.getByText('Clean Energy Wire')).toBeInTheDocument();
     expect(screen.getByText('Science')).toBeInTheDocument();
+    const img = container.querySelector('.news-card-image');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute('src', testArticle.imageUrl);
+  });
+
+  it('renders a compact text-only card without reserving empty image container when imageUrl is missing', () => {
+    const textOnlyArticle = {
+      ...testArticle,
+      id: 'art-text-only',
+      imageUrl: null,
+    };
+
+    const { container } = render(
+      <BrowserRouter>
+        <BookmarksProvider>
+          <ToastProvider>
+            <NewsCard article={textOnlyArticle} />
+          </ToastProvider>
+        </BookmarksProvider>
+      </BrowserRouter>
+    );
+
+    expect(screen.getByText('Next Generation Renewable Energy Breakthrough')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(container.querySelector('.news-card-image-wrap')).not.toBeInTheDocument();
+    expect(container.querySelector('.image-placeholder')).not.toBeInTheDocument();
+    expect(container.querySelector('.news-card-standard')).toHaveClass('text-only-card');
   });
 });
