@@ -212,6 +212,155 @@ describe('Search Relevance & Query Processing Engine', () => {
       expect(res.relevantCount).toBe(0);
       expect(res.filteredCount).toBe(1);
     });
+
+    it('prioritizes exact headline matches over description-only matches', () => {
+      const articles = [
+        {
+          id: 'desc-only',
+          title: 'Weekend sports roundup: Highlights across international championships',
+          description: 'In other sports news, the Cricket World Cup tournament continued in Mumbai.',
+          publishedAt: '2026-11-05T12:00:00Z',
+        },
+        {
+          id: 'headline-match',
+          title: 'Cricket World Cup: India qualifies for semifinals after dominant victory',
+          description: 'Bowlers deliver standout performance in front of a packed stadium.',
+          publishedAt: '2026-11-04T12:00:00Z', // older date, but headline match
+        },
+      ];
+
+      const res = filterAndRankSearchResults(articles, 'Cricket World Cup');
+      expect(res.articles).toHaveLength(2);
+      expect(res.articles[0].id).toBe('headline-match');
+      expect(res.articles[1].id).toBe('desc-only');
+    });
+
+    it('uses recency as a secondary ranking factor when relevance scores are comparable', () => {
+      const articles = [
+        {
+          id: 'older-story',
+          title: 'Google launches Gemini 2.0 with enhanced multimodal reasoning',
+          description: 'Alphabet announces major developer upgrades at annual conference.',
+          publishedAt: '2026-11-01T10:00:00Z',
+        },
+        {
+          id: 'newer-story',
+          title: 'Google releases new open weights models for on-device computing',
+          description: 'Alphabet demonstrates lightweight neural network benchmarks.',
+          publishedAt: '2026-11-05T10:00:00Z',
+        },
+      ];
+
+      const res = filterAndRankSearchResults(articles, 'Google');
+      expect(res.articles).toHaveLength(2);
+      expect(res.articles[0].id).toBe('newer-story');
+      expect(res.articles[1].id).toBe('older-story');
+    });
+  });
+
+  describe('Comprehensive Query Types & Search Intelligence', () => {
+    it('handles natural-language queries without penalizing intent noise words', () => {
+      const nlQuery = processSearchQuery('latest news about Artificial Intelligence');
+      expect(nlQuery.coreQuery).toBe('Artificial Intelligence');
+      expect(nlQuery.coreTokens).toContain('artificial');
+      expect(nlQuery.coreTokens).toContain('intelligence');
+      expect(nlQuery.coreTokens).not.toContain('news');
+      expect(nlQuery.coreTokens).not.toContain('latest');
+
+      const article = {
+        title: 'Frontier AI research achieves breakthrough in automated code generation',
+        description: 'Computer scientists demonstrate new reasoning architectures.',
+      };
+      const score = scoreArticleRelevance(article, nlQuery);
+      expect(score.isRelevant).toBe(true);
+      expect(score.score).toBeGreaterThanOrEqual(70);
+    });
+
+    it('matches multi-word queries with stemmed terms (India technology news)', () => {
+      const q = processSearchQuery('India technology news');
+      expect(q.coreTokens).toContain('india');
+      expect(q.coreTokens).toContain('technology');
+      expect(q.coreTokens).not.toContain('news');
+
+      const article = {
+        title: "India's tech sector surges with $10B semiconductor investment",
+        description: 'New microchip fabrication facility approved in Gujarat to expand local supply chains.',
+      };
+      const score = scoreArticleRelevance(article, q);
+      expect(score.isRelevant).toBe(true);
+      expect(score.score).toBeGreaterThanOrEqual(60);
+    });
+
+    it('resolves leader and person queries with common titles and abbreviations (Narendra Modi)', () => {
+      const q = processSearchQuery('Narendra Modi');
+      expect(q.effectiveProviderQuery).toContain('PM Modi');
+
+      const article = {
+        title: 'PM Modi inaugurates new semiconductor plant in Dholera',
+        description: 'Prime Minister addresses industry leaders on domestic microelectronics manufacturing.',
+      };
+      const score = scoreArticleRelevance(article, q);
+      expect(score.isRelevant).toBe(true);
+      expect(score.score).toBeGreaterThanOrEqual(70);
+    });
+
+    it('resolves corporate entities and synonyms (Google / Alphabet)', () => {
+      const q = processSearchQuery('Google');
+      expect(q.effectiveProviderQuery).toContain('Alphabet');
+
+      const article = {
+        title: 'Alphabet quarterly revenues surge driven by cloud infrastructure and search ads',
+        description: 'CEO Sundar Pichai highlights growth in enterprise machine learning contracts.',
+      };
+      const score = scoreArticleRelevance(article, q);
+      expect(score.isRelevant).toBe(true);
+      expect(score.score).toBeGreaterThanOrEqual(65);
+    });
+
+    it('prioritizes specific regional entity (Amaravati) over generic non-Amaravati regional stories', () => {
+      const q = processSearchQuery('Amaravati');
+      expect(q.focusTerm).toBe('amaravati');
+
+      const amaravatiArticle = {
+        title: 'Amaravati capital development works resume with high-speed road network',
+        description: 'Government signs funding agreements for government complex in Amaravati.',
+      };
+      const vizagArticle = {
+        title: 'Visakhapatnam port records trade growth in cargo shipments',
+        description: 'Maritime authority reports export milestones in Andhra Pradesh.',
+      };
+
+      const amaravatiScore = scoreArticleRelevance(amaravatiArticle, q);
+      const vizagScore = scoreArticleRelevance(vizagArticle, q);
+
+      expect(amaravatiScore.isRelevant).toBe(true);
+      expect(amaravatiScore.score).toBeGreaterThanOrEqual(80);
+      expect(vizagScore.score).toBeLessThan(amaravatiScore.score);
+      expect(vizagScore.isRelevant).toBe(false);
+    });
+
+    it('handles abbreviations accurately (AI, EV, AP Politics)', () => {
+      const qAI = processSearchQuery('AI');
+      expect(qAI.effectiveProviderQuery).toContain('Artificial Intelligence');
+
+      const qEV = processSearchQuery('EV');
+      expect(qEV.effectiveProviderQuery).toContain('electric vehicles');
+
+      const qAP = processSearchQuery('AP Politics');
+      expect(qAP.effectiveProviderQuery).toContain('Andhra Pradesh');
+    });
+
+    it('returns honest empty state for queries with zero matching results', () => {
+      const articles = [
+        {
+          title: 'Stock markets rise as global trade indicators steady',
+          description: 'Central banks report moderate growth.',
+        },
+      ];
+      const res = filterAndRankSearchResults(articles, 'xyzqwe123gibberish');
+      expect(res.relevantCount).toBe(0);
+      expect(res.articles).toHaveLength(0);
+    });
   });
 
   describe('deduplicateArticles', () => {

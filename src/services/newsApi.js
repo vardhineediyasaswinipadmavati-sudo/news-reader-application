@@ -429,6 +429,7 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
 
   // Request a slightly larger batch from provider so we have room after strict relevance filtering
   const fetchSize = Math.max(pageSize, 20);
+  const effectiveLimit = provider === 'gnews' ? Math.min(fetchSize, 10) : fetchSize;
 
   if (provider === 'guardian') {
     url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&order-by=relevance&page=${page}&page-size=${fetchSize}&show-fields=thumbnail,trailText,byline,bodyText,publication&api-key=${encodeURIComponent(apiKey)}`;
@@ -438,10 +439,10 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
     url = `${baseUrl}/news?apikey=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(providerSearchTerm)}&language=en${pageParam}`;
     normalizer = (item) => normalizeNewsDataArticle(item, 'Search Result');
   } else {
+    // Default GNews provider: pass sortby=relevance for search queries so upstream returns best matches
     const pageParam = page > 1 ? `&page=${page}` : '';
     const keyParam = isValidCustomApiKey(apiKey, provider) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
-    const effectiveLimit = Math.min(fetchSize, 10);
-    url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&max=${effectiveLimit}${keyParam}${pageParam}`;
+    url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&sortby=relevance&max=${effectiveLimit}${keyParam}${pageParam}`;
     normalizer = (item) => normalizeGNewsArticle(item, 'Search Result');
   }
 
@@ -456,18 +457,47 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
     rawArticles = Array.isArray(rawData.articles) ? rawData.articles : [];
   }
 
-  const normalized = rawArticles
+  let normalized = rawArticles
     .map(normalizer)
     .filter((a) => a && a.title && a.title.trim() !== '');
 
-  // 1. Deduplicate
-  const deduped = deduplicateArticles(normalized);
-
-  // 2. Strict Relevance Scoring & Filtering
-  const rankedResult = filterAndRankSearchResults(deduped, cleanQuery, {
-    minScore: 30,
+  // 1. Initial Deduplication & Scoring
+  let deduped = deduplicateArticles(normalized);
+  let rankedResult = filterAndRankSearchResults(deduped, cleanQuery, {
+    minScore: 28,
     maxResults: pageSize,
   });
+
+  // For GNews on initial search: if page 1 returned the maximum 10 items, but strict filtering leaves < 4 articles,
+  // proactively fetch page 2 to augment candidate pool so the user receives a solid set of verified results
+  if (provider === 'gnews' && page === 1 && rawArticles.length >= 10 && rankedResult.articles.length < 4 && !isTest) {
+    try {
+      const page2KeyParam = isValidCustomApiKey(apiKey, provider) ? `&apikey=${encodeURIComponent(apiKey.trim())}` : '';
+      const page2Url = `${baseUrl}/search?q=${encodeURIComponent(providerSearchTerm)}&lang=en&sortby=relevance&max=${effectiveLimit}${page2KeyParam}&page=2`;
+      const page2RawData = await fetchWithRetry(page2Url, provider, apiKey);
+      const page2RawArticles = Array.isArray(page2RawData.articles) ? page2RawData.articles : [];
+
+      if (page2RawArticles.length > 0) {
+        const page2Normalized = page2RawArticles
+          .map(normalizer)
+          .filter((a) => a && a.title && a.title.trim() !== '');
+
+        rawArticles = [...rawArticles, ...page2RawArticles];
+        normalized = [...normalized, ...page2Normalized];
+        deduped = deduplicateArticles(normalized);
+        rankedResult = filterAndRankSearchResults(deduped, cleanQuery, {
+          minScore: 28,
+          maxResults: pageSize,
+        });
+      }
+    } catch {
+      // If page 2 fetch fails or is unavailable, proceed gracefully with page 1 results
+    }
+  }
+
+  const hasMore = provider === 'gnews'
+    ? rawArticles.length >= (page === 1 && normalized.length > 10 ? 20 : 10)
+    : rawArticles.length >= fetchSize;
 
   return {
     articles: rankedResult.articles,
@@ -479,7 +509,7 @@ export async function searchNewsArticles({ query, page = 1, pageSize = 15 } = {}
     provider,
     page,
     pageSize,
-    hasMore: rawArticles.length >= fetchSize,
+    hasMore,
   };
 }
 

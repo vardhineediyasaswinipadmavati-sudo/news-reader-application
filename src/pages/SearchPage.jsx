@@ -217,6 +217,8 @@ export default function SearchPage() {
             description={
               meta.entityType === 'AP_ELECTIONS'
                 ? "We verified all returned articles against strict relevance criteria. Note: Western news providers often mistake 'AP' for Associated Press wire reports; we excluded these unrelated wires to maintain strict accuracy."
+                : meta.entityType === 'AMARAVATI'
+                ? "No articles focusing specifically on Amaravati were found. Unrelated regional dispatches were filtered out to maintain search precision."
                 : meta.entityType === 'TESLA'
                 ? "No articles were found where Tesla is the primary subject. Unrelated political speeches or articles with incidental mentions were filtered out to maintain search integrity."
                 : meta.filteredCount > 0
@@ -235,6 +237,17 @@ export default function SearchPage() {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center' }}>
               {meta.entityType === 'AP_ELECTIONS' ? (
                 ['Andhra Pradesh', 'India National', 'Assembly Elections'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleTopicClick(t)}
+                    className="search-topic-pill"
+                  >
+                    {t}
+                  </button>
+                ))
+              ) : meta.entityType === 'AMARAVATI' ? (
+                ['Andhra Pradesh', 'Vijayawada', 'AP Politics'].map((t) => (
                   <button
                     key={t}
                     type="button"

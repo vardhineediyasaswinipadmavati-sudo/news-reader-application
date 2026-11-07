@@ -1,8 +1,8 @@
 /**
  * NEWSLY — Search Relevance, Disambiguation & Aggregation Engine
  *
- * Strict relevance filtering, query parsing, entity disambiguation,
- * incidental-mention detection, deduplication, and publisher diversity.
+ * Intelligent query parsing, natural language support, entity disambiguation,
+ * synonym expansion, incidental-mention detection, deduplication, and ranking.
  */
 
 // Common English stopwords to ignore when tokenizing queries
@@ -22,6 +22,14 @@ const STOPWORDS = new Set([
   'why', 'with', 'would', 'you', 'your', 'yours', 'yourself', 'yourselves'
 ]);
 
+// Search intent noise words that users type in natural language queries
+// These should NOT be mandatory tokens for news articles to be considered relevant
+const SEARCH_NOISE_WORDS = new Set([
+  'news', 'latest', 'recent', 'today', 'breaking', 'updates', 'update',
+  'articles', 'article', 'stories', 'story', 'report', 'reports', 'coverage',
+  'information', 'info', 'headlines', 'headline', 'daily'
+]);
+
 /**
  * Clean and normalize text: lowercase, remove special characters, trim whitespace
  */
@@ -35,7 +43,38 @@ export function normalizeText(text) {
 }
 
 /**
- * Extract meaningful word tokens from a string
+ * Lightweight rule-based English stemmer for news terminology.
+ * Handles plurals, verb conjugations, and common news keyword variations.
+ */
+export function getStem(word) {
+  if (!word || typeof word !== 'string' || word.length <= 3) return word || '';
+  const w = word.toLowerCase();
+
+  // Known irregular news word stems
+  if (w === 'technologies' || w === 'technology' || w === 'technological') return 'tech';
+  if (w === 'elections' || w === 'electoral' || w === 'election') return 'elect';
+  if (w === 'semiconductors' || w === 'semiconductor') return 'semiconductor';
+  if (w === 'chipmakers' || w === 'chipmaker' || w === 'chips') return 'chip';
+  if (w === 'investments' || w === 'investing' || w === 'investor' || w === 'investors') return 'invest';
+  if (w === 'batteries' || w === 'battery') return 'batteri';
+  if (w === 'economies' || w === 'economic' || w === 'economy') return 'econom';
+  if (w === 'automakers' || w === 'automaker' || w === 'automobile' || w === 'automotive') return 'auto';
+  if (w === 'politicians' || w === 'political' || w === 'politics') return 'polit';
+
+  // Standard suffix stripping
+  if (w.endsWith('ies') && w.length > 4) return w.slice(0, -3) + 'y';
+  if (w.endsWith('ing') && w.length > 5) return w.slice(0, -3);
+  if (w.endsWith('ed') && w.length > 4) return w.slice(0, -2);
+  if (w.endsWith('es') && w.length > 4) return w.slice(0, -2);
+  if (w.endsWith('s') && !w.endsWith('ss') && w.length > 3) return w.slice(0, -1);
+  if (w.endsWith('tion') && w.length > 5) return w.slice(0, -4);
+  if (w.endsWith('ment') && w.length > 5) return w.slice(0, -4);
+
+  return w;
+}
+
+/**
+ * Extract meaningful word tokens from a string (excluding standard stopwords)
  */
 export function extractTokens(text) {
   const norm = normalizeText(text);
@@ -43,6 +82,19 @@ export function extractTokens(text) {
   return norm
     .split(/\s+/)
     .filter((word) => word.length >= 2 && !STOPWORDS.has(word));
+}
+
+/**
+ * Extract core substantive tokens excluding standard stopwords AND search intent noise words
+ */
+export function extractCoreTokens(text) {
+  const norm = normalizeText(text);
+  if (!norm) return [];
+  const tokens = norm
+    .split(/\s+/)
+    .filter((word) => word.length >= 2 && !STOPWORDS.has(word) && !SEARCH_NOISE_WORDS.has(word));
+  // If stripping search noise leaves nothing (e.g. user literally searched "latest news"), fall back to standard tokens
+  return tokens.length > 0 ? tokens : extractTokens(text);
 }
 
 /**
@@ -56,6 +108,17 @@ export function containsWord(text, word) {
 }
 
 /**
+ * Check if a word or its grammatical stem matches in text
+ */
+export function matchesTokenOrStem(text, token) {
+  if (!text || !token) return false;
+  if (containsWord(text, token)) return true;
+  const stem = getStem(token);
+  if (stem && stem.length >= 3 && containsWord(text, stem)) return true;
+  return false;
+}
+
+/**
  * Check if an exact multiword phrase exists in text
  */
 export function containsPhrase(text, phrase) {
@@ -66,112 +129,269 @@ export function containsPhrase(text, phrase) {
 }
 
 /**
- * Process raw user search query to detect structure, phrases, and entity intent.
+ * Strip common conversational natural-language prefixes from query strings
+ */
+function cleanNaturalLanguageQuery(query) {
+  if (!query) return '';
+  let cleaned = query.trim();
+
+  const nlPrefixes = [
+    /^(latest|recent|today's|breaking|top)\s+(news|headlines|updates|stories)\s+(about|on|for|regarding|in)\s+/i,
+    /^(news|updates|information|articles|stories)\s+(about|on|for|regarding|in)\s+/i,
+    /^(what\s+is\s+happening\s+with|what\s+happened\s+in|what\s+is\s+happening\s+in|who\s+won|what\s+is|who\s+is|tell\s+me\s+about)\s+/i,
+    /^(give\s+me\s+news\s+about|find\s+news\s+on|search\s+for)\s+/i,
+  ];
+
+  for (const regex of nlPrefixes) {
+    if (regex.test(cleaned)) {
+      cleaned = cleaned.replace(regex, '').trim();
+      break;
+    }
+  }
+
+  return cleaned;
+}
+
+/**
+ * Comprehensive Knowledge Base of Entity & Topic Mappings
+ */
+const TOPIC_REGISTRY = [
+  // 1. AP Elections (Must evaluate before general Andhra Pradesh)
+  {
+    id: 'AP_ELECTIONS',
+    test: (q) =>
+      /\bap\s+(elections?|polls?|assembly|results?)\b/i.test(q) ||
+      /\b(elections?|polls?)\s+in\s+(ap|andhra(\s+pradesh)?)\b/i.test(q) ||
+      /\bandhra(\s+pradesh)?\s+(assembly\s+polls?|elections?|polls?)\b/i.test(q),
+    providerQuery: '"Andhra Pradesh" OR "AP elections" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP',
+    synonyms: ['andhra pradesh', 'amaravati', 'ysrcp', 'tdp', 'jagan', 'chandrababu', 'naidu', 'pawan kalyan', 'ap assembly', 'ap elections'],
+    isRegionalAP: true,
+  },
+
+  // 2. Amaravati (Specific Capital / Regional Focus)
+  {
+    id: 'AMARAVATI',
+    test: (q) => /\bamaravati\b/i.test(q),
+    providerQuery: 'Amaravati OR "Amaravati capital"',
+    synonyms: ['amaravati', 'andhra pradesh capital', 'crda', 'andhra pradesh'],
+    focusTerm: 'amaravati',
+    isRegionalAP: true,
+  },
+
+  // 3. Andhra Pradesh General / Regional Politics
+  {
+    id: 'ANDHRA_PRADESH',
+    test: (q) =>
+      /\b(andhra(\s+pradesh)?|visakhapatnam|vizag|vijayawada|ysrcp|tdp|jagan|chandrababu|pawan\s+kalyan)\b/i.test(q) ||
+      /\bap\s+(politics|political|government|govt|elections?|polls?|assembly|results?|cabinet|news|cm|schemes?)\b/i.test(q) ||
+      /\b(elections?|polls?|politics|government)\s+in\s+(ap|andhra(\s+pradesh)?)\b/i.test(q) ||
+      q.toLowerCase() === 'ap politics' ||
+      q.toLowerCase() === 'ap government' ||
+      q.toLowerCase() === 'andhra pradesh',
+    providerQuery: '"Andhra Pradesh" OR "AP politics" OR "AP government" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP',
+    synonyms: ['andhra pradesh', 'andhra', 'amaravati', 'visakhapatnam', 'vizag', 'vijayawada', 'ysrcp', 'tdp', 'jagan', 'chandrababu', 'naidu', 'pawan kalyan', 'jana sena', 'ap assembly', 'ap politics', 'ap govt'],
+    isRegionalAP: true,
+  },
+
+  // 4. Leaders / People: Narendra Modi
+  {
+    id: 'LEADER_MODI',
+    test: (q) => /\b(narendra\s+modi|pm\s+modi|prime\s+minister\s+modi)\b/i.test(q) || /^\s*modi\s*$/i.test(q),
+    providerQuery: '"Narendra Modi" OR "PM Modi" OR Modi',
+    synonyms: ['narendra modi', 'pm modi', 'modi', 'prime minister modi', 'bjp', 'new delhi'],
+    focusTerm: 'modi',
+  },
+
+  // 5. Companies / Organizations: Google / Alphabet
+  {
+    id: 'TECH_GOOGLE',
+    test: (q) => /^\s*google\s*$/i.test(q) || /\b(google|alphabet\s+inc|sundar\s+pichai)\b/i.test(q),
+    providerQuery: 'Google OR Alphabet',
+    synonyms: ['google', 'alphabet', 'sundar pichai', 'gemini', 'android', 'pixel'],
+    focusTerm: 'google',
+  },
+
+  // 6. Companies: Tesla
+  {
+    id: 'TESLA',
+    test: (q) => /\b(tesla|tsla|cybertruck)\b/i.test(q),
+    providerQuery: 'Tesla OR TSLA OR Cybertruck',
+    synonyms: ['tesla', 'tsla', 'cybertruck', 'gigafactory', 'elon musk', 'electric vehicle'],
+    focusTerm: 'tesla',
+  },
+
+  // 7. Sports: Cricket World Cup
+  {
+    id: 'CRICKET_WORLD_CUP',
+    test: (q) => /\b(cricket\s+world\s+cup|icc\s+world\s+cup|world\s+cup\s+cricket|cwc)\b/i.test(q),
+    providerQuery: '"Cricket World Cup" OR "ICC World Cup"',
+    synonyms: ['cricket world cup', 'icc world cup', 'world cup', 'cricket', 'icc', 'bcci', 'team india', 'odi', 'final'],
+    focusTerm: 'world cup',
+  },
+
+  // 8. India Technology News
+  {
+    id: 'INDIA_TECHNOLOGY',
+    test: (q) =>
+      (/\bindia\s+(technology|tech)\b/i.test(q) ||
+       /\b(technology|tech)\s+in\s+india\b/i.test(q) ||
+       /\bindian?\s+(tech|technology|it\s+sector)\b/i.test(q)),
+    providerQuery: 'India (technology OR tech OR semiconductor)',
+    synonyms: ['india', 'indian', 'technology', 'tech', 'semiconductor', 'it sector', 'bengaluru', 'isro', 'startups', 'electronics'],
+  },
+
+  // 9. India National News
+  {
+    id: 'INDIA_NATIONAL',
+    test: (q) =>
+      /\bindia\s+(news|breaking|national|politics|economy|updates?)\b/i.test(q) ||
+      /\bindian?\s+(national\s+news|politics|government)\b/i.test(q) ||
+      q.toLowerCase() === 'india news' ||
+      q.toLowerCase() === 'india',
+    providerQuery: 'India national news OR "India news"',
+    synonyms: ['india', 'indian', 'delhi', 'new delhi', 'mumbai', 'modi', 'bjp', 'congress', 'parliament', 'lok sabha', 'isro', 'rbi', 'rupee'],
+  },
+
+  // 10. Hyderabad
+  {
+    id: 'HYDERABAD',
+    test: (q) => /\bhyderabad(\s+news)?\b/i.test(q),
+    providerQuery: 'Hyderabad Telangana news',
+    synonyms: ['hyderabad', 'telangana'],
+    focusTerm: 'hyderabad',
+  },
+
+  // 11. World News
+  {
+    id: 'WORLD_NEWS',
+    test: (q) => /\b(world\s+news|international\s+news|global\s+affairs)\b/i.test(q),
+    providerQuery: 'world international news',
+    synonyms: ['world', 'international', 'global', 'diplomacy', 'united nations'],
+  },
+
+  // 12. Technology Desk
+  {
+    id: 'TECHNOLOGY',
+    test: (q) =>
+      q.toLowerCase() === 'technology' ||
+      /\btechnology\s+news\b/i.test(q) ||
+      q.toLowerCase() === 'tech news' ||
+      q.toLowerCase() === 'tech',
+    providerQuery: 'technology software hardware computing',
+    synonyms: ['technology', 'tech', 'software', 'hardware', 'ai', 'semiconductor', 'computing', 'cybersecurity', 'cloud'],
+  },
+
+  // 13. Artificial Intelligence / AI
+  {
+    id: 'ARTIFICIAL_INTELLIGENCE',
+    test: (q) =>
+      /\b(artificial\s+intelligence|generative\s+ai|chatgpt|openai|anthropic|llm|llms|deep\s+learning|machine\s+learning)\b/i.test(q) ||
+      q.toLowerCase() === 'ai' ||
+      /\bai\s+(models?|chips?|safety|startups?|tools?|agents?|news)\b/i.test(q),
+    providerQuery: '"Artificial Intelligence" OR "Generative AI" OR AI',
+    synonyms: ['artificial intelligence', 'ai', 'generative ai', 'openai', 'chatgpt', 'anthropic', 'claude', 'gemini', 'deepmind', 'llm', 'machine learning', 'deep learning', 'neural network', 'superintelligence', 'agi'],
+    focusTerm: 'ai',
+  },
+
+  // 14. India Cricket
+  {
+    id: 'INDIA_CRICKET',
+    test: (q) =>
+      /\b(india\s+cricket|indian\s+cricket|bcci|ipl|team\s+india\s+cricket)\b/i.test(q) ||
+      (/\bcricket\b/i.test(q) && /\bindia\b/i.test(q)),
+    providerQuery: '"Indian cricket" OR BCCI OR IPL OR "Team India cricket"',
+    synonyms: ['cricket', 'bcci', 'ipl', 'team india', 'rohit sharma', 'virat kohli'],
+  },
+
+  // 15. Semiconductor Industry
+  {
+    id: 'SEMICONDUCTORS',
+    test: (q) => /\b(semiconductors?|chipmakers?|tsmc|nvidia\s+chips?|intel\s+foundry|microchips?)\b/i.test(q),
+    providerQuery: 'semiconductor OR chipmakers OR TSMC OR microchips',
+    synonyms: ['semiconductor', 'semiconductors', 'chip', 'chips', 'chipmaker', 'foundry', 'tsmc', 'intel'],
+  },
+
+  // 16. Electric Vehicles
+  {
+    id: 'ELECTRIC_VEHICLES',
+    test: (q) => /\b(electric\s+vehicles?|ev\s+market|evs|ev\s+charging|battery\s+vehicles?)\b/i.test(q) || /^\s*ev\s*$/i.test(q) || /^\s*evs\s*$/i.test(q),
+    providerQuery: '"electric vehicles" OR EV OR EVs OR "electric car"',
+    synonyms: ['electric vehicle', 'electric vehicles', 'ev', 'evs', 'charging', 'battery', 'automaker'],
+    focusTerm: 'ev',
+  },
+];
+
+/**
+ * Process raw user search query to detect structure, natural-language intents,
+ * phrases, synonyms, and entity categories.
  */
 export function processSearchQuery(rawQuery) {
   if (!rawQuery || typeof rawQuery !== 'string') {
     return {
       rawQuery: '',
+      cleanQuery: '',
+      coreQuery: '',
       normalized: '',
       tokens: [],
+      coreTokens: [],
       phrases: [],
       entityType: 'GENERIC',
       effectiveProviderQuery: '',
+      synonymKeywords: [],
+      focusTerm: null,
+      isRegionalAP: false,
     };
   }
 
   const cleanQuery = rawQuery.trim().replace(/\s+/g, ' ');
+  const naturalCore = cleanNaturalLanguageQuery(cleanQuery);
   const lowerQuery = cleanQuery.toLowerCase();
   const tokens = extractTokens(cleanQuery);
+  const coreTokens = extractCoreTokens(naturalCore || cleanQuery);
 
   // Extract quoted phrases e.g. "artificial intelligence"
   const quotedMatches = cleanQuery.match(/"([^"]+)"/g) || [];
   const phrases = quotedMatches.map((m) => m.replace(/"/g, '').trim());
 
-  // Entity and Topic Disambiguation
+  // Check Topic & Entity Registry
   let entityType = 'GENERIC';
-  let effectiveProviderQuery = cleanQuery;
+  let effectiveProviderQuery = naturalCore || cleanQuery;
+  let synonymKeywords = [];
+  let focusTerm = null;
+  let isRegionalAP = false;
 
-  // 1. Andhra Pradesh Regional & Politics
-  const isApElections =
-    (/\bap\s+(elections?|polls?|assembly|results?)\b/i.test(cleanQuery) ||
-     /\b(elections?|polls?)\s+in\s+(ap|andhra(\s+pradesh)?)\b/i.test(cleanQuery) ||
-     /\bandhra(\s+pradesh)?\s+(assembly\s+polls?|elections?|polls?)\b/i.test(cleanQuery));
+  for (const entry of TOPIC_REGISTRY) {
+    if (entry.test(cleanQuery) || (naturalCore && entry.test(naturalCore))) {
+      entityType = entry.id;
+      effectiveProviderQuery = entry.providerQuery;
+      synonymKeywords = entry.synonyms || [];
+      focusTerm = entry.focusTerm || null;
+      isRegionalAP = Boolean(entry.isRegionalAP);
+      break;
+    }
+  }
 
-  const isAndhraPradeshQuery =
-    (/\b(andhra(\s+pradesh)?|amaravati|visakhapatnam|vijayawada|ysrcp|tdp|jagan|chandrababu|pawan\s+kalyan)\b/i.test(cleanQuery) ||
-     /\bap\s+(politics|political|government|govt|elections?|polls?|assembly|results?|cabinet|news|cm|schemes?)\b/i.test(cleanQuery) ||
-     /\b(elections?|polls?|politics|government)\s+in\s+(ap|andhra(\s+pradesh)?)\b/i.test(cleanQuery) ||
-     cleanQuery.trim().toLowerCase() === 'ap politics' ||
-     cleanQuery.trim().toLowerCase() === 'ap government' ||
-     cleanQuery.trim().toLowerCase() === 'andhra pradesh');
-
-  if (isApElections) {
-    entityType = 'AP_ELECTIONS';
-    effectiveProviderQuery = '"Andhra Pradesh" OR "AP elections" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP';
-  } else if (isAndhraPradeshQuery) {
-    entityType = 'ANDHRA_PRADESH';
-    effectiveProviderQuery = '"Andhra Pradesh" OR "AP politics" OR "AP government" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP';
-  }
-  // 2. India National News
-  else if (
-    /\bindia\s+(news|breaking|national|politics|economy|updates?)\b/i.test(cleanQuery) ||
-    /\bindian?\s+(national\s+news|politics|government)\b/i.test(cleanQuery) ||
-    cleanQuery.trim().toLowerCase() === 'india news'
-  ) {
-    entityType = 'INDIA_NATIONAL';
-    effectiveProviderQuery = 'India national news OR "India news"';
-  }
-  // 3. Hyderabad News
-  else if (/\bhyderabad(\s+news)?\b/i.test(cleanQuery)) {
-    entityType = 'HYDERABAD';
-    effectiveProviderQuery = 'Hyderabad Telangana news';
-  }
-  // 4. World News
-  else if (/\b(world\s+news|international\s+news|global\s+affairs)\b/i.test(cleanQuery)) {
-    entityType = 'WORLD_NEWS';
-    effectiveProviderQuery = 'world international news';
-  }
-  // 5. Technology Desk
-  else if (
-    cleanQuery.trim().toLowerCase() === 'technology' ||
-    /\btechnology\s+news\b/i.test(cleanQuery) ||
-    cleanQuery.trim().toLowerCase() === 'tech news'
-  ) {
-    entityType = 'TECHNOLOGY';
-    effectiveProviderQuery = 'technology software hardware computing';
-  }
-  // 6. Tesla / TSLA
-  else if (/\b(tesla|tsla|cybertruck)\b/i.test(cleanQuery)) {
-    entityType = 'TESLA';
-  }
-  // 7. Artificial Intelligence / AI
-  else if (
-    /\b(artificial\s+intelligence|generative\s+ai|chatgpt|openai|anthropic|llm|llms|deep\s+learning|machine\s+learning)\b/i.test(cleanQuery) ||
-    cleanQuery.trim().toLowerCase() === 'ai' ||
-    /\bai\s+(models?|chips?|safety|startups?|tools?|agents?|news)\b/i.test(cleanQuery)
-  ) {
-    entityType = 'ARTIFICIAL_INTELLIGENCE';
-  }
-  // 8. India Cricket
-  else if (
-    /\b(india\s+cricket|indian\s+cricket|bcci|ipl|team\s+india\s+cricket)\b/i.test(cleanQuery) ||
-    (/\bcricket\b/i.test(cleanQuery) && /\bindia\b/i.test(cleanQuery))
-  ) {
-    entityType = 'INDIA_CRICKET';
-  }
-  // 9. Semiconductor Industry
-  else if (/\b(semiconductors?|chipmakers?|tsmc|nvidia\s+chips?|intel\s+foundry)\b/i.test(cleanQuery)) {
-    entityType = 'SEMICONDUCTORS';
+  // If no registry match, format effective query safely:
+  // If multi-word without quotes, wrap as exact phrase or clean terms to avoid over-restrictive GNews AND matching
+  if (entityType === 'GENERIC') {
+    if (coreTokens.length > 1 && !cleanQuery.includes('"')) {
+      effectiveProviderQuery = coreTokens.join(' ');
+    }
   }
 
   return {
     rawQuery: cleanQuery,
+    cleanQuery,
+    coreQuery: naturalCore,
     normalized: lowerQuery,
     tokens,
-    phrases: phrases.length > 0 ? phrases : [cleanQuery],
+    coreTokens,
+    phrases: phrases.length > 0 ? phrases : [naturalCore || cleanQuery],
     entityType,
     effectiveProviderQuery,
+    synonymKeywords,
+    focusTerm,
+    isRegionalAP,
   };
 }
 
@@ -188,19 +408,29 @@ export function scoreArticleRelevance(article, processedQuery) {
   const desc = article.description || '';
   const content = article.content || '';
   const sourceName = (article.source && article.source.name) ? article.source.name : '';
+
   const normTitle = normalizeText(title);
   const normDesc = normalizeText(desc);
   const normContent = normalizeText(content);
   const normSource = normalizeText(sourceName);
 
-  const { normalized: query, tokens, entityType } = processedQuery;
+  const {
+    normalized: query,
+    rawQuery,
+    coreQuery,
+    coreTokens,
+    entityType,
+    synonymKeywords = [],
+    focusTerm = null,
+    isRegionalAP = false,
+  } = processedQuery;
 
   // -------------------------------------------------------------
-  // SPECIALIZED ENTITY DISAMBIGUATION RULES
+  // 1. SPECIALIZED REGIONAL & ENTITY INTEGRITY CHECKS
   // -------------------------------------------------------------
 
-  // Rule 1: Andhra Pradesh / AP Regional & Politics
-  if (entityType === 'ANDHRA_PRADESH' || entityType === 'AP_ELECTIONS') {
+  // Rule A: Andhra Pradesh / AP Regional & Politics
+  if (isRegionalAP || entityType === 'ANDHRA_PRADESH' || entityType === 'AP_ELECTIONS' || entityType === 'AMARAVATI') {
     // Explicit negative check: Arunachal Pradesh is NOT Andhra Pradesh
     const isArunachal =
       (containsPhrase(normTitle, 'arunachal') || containsPhrase(normDesc, 'arunachal')) &&
@@ -217,13 +447,13 @@ export function scoreArticleRelevance(article, processedQuery) {
     const andhraKeywords = [
       'andhra', 'andhra pradesh', 'amaravati', 'ysrcp', 'tdp', 'jagan',
       'chandrababu', 'naidu', 'pawan kalyan', 'jana sena', 'vijayawada',
-      'visakhapatnam', 'ap assembly', 'ap election', 'ap elections', 'ap politics',
+      'visakhapatnam', 'vizag', 'ap assembly', 'ap election', 'ap elections', 'ap politics',
       'ap govt', 'ap government', 'ap cabinet', 'tirupati', 'guntur', 'kurnool',
       'nellore', 'kadapa', 'anantapur', 'lok sabha', 'assembly polls', 'constituency', 'y s jagan'
     ];
 
-    const hasAndhraContextInTitle = andhraKeywords.some((kw) => containsPhrase(normTitle, kw));
-    const hasAndhraContextInBody = andhraKeywords.some((kw) => containsPhrase(normDesc, kw) || containsPhrase(normContent, kw));
+    const hasAndhraInTitle = andhraKeywords.some((kw) => containsPhrase(normTitle, kw) || containsWord(normTitle, kw));
+    const hasAndhraInBody = andhraKeywords.some((kw) => containsPhrase(normDesc, kw) || containsPhrase(normContent, kw));
 
     // Check for false-positive wire agency: "Associated Press" or "(AP)" covering US/foreign stories
     const isWireAttribution =
@@ -248,11 +478,11 @@ export function scoreArticleRelevance(article, processedQuery) {
       containsPhrase(normTitle, 'pennsylvania') ||
       containsPhrase(normTitle, 'michigan') ||
       containsPhrase(normTitle, 'french election') ||
+      containsPhrase(normTitle, 'macron') ||
       containsPhrase(normTitle, 'uk election');
 
-    // If it's a US/foreign election or general wire where AP is just the wire reporter,
-    // and there is ZERO Andhra Pradesh context: REJECT with 0 score!
-    if ((isUsForeignElection || isWireAttribution) && !hasAndhraContextInTitle && !hasAndhraContextInBody) {
+    // If it's an Associated Press wire or foreign election report without Andhra Pradesh context: REJECT with 0
+    if ((isUsForeignElection || isWireAttribution) && !hasAndhraInTitle && !hasAndhraInBody) {
       return {
         score: 0,
         isRelevant: false,
@@ -261,7 +491,22 @@ export function scoreArticleRelevance(article, processedQuery) {
       };
     }
 
-    if (hasAndhraContextInTitle) {
+    // Specific focus check for Amaravati searches:
+    // If user specifically searched for Amaravati, ensure Amaravati is covered
+    if (entityType === 'AMARAVATI') {
+      const hasAmaravatiInTitle = containsWord(normTitle, 'amaravati') || containsPhrase(normTitle, 'amaravati');
+      const hasAmaravatiInDesc = containsWord(normDesc, 'amaravati') || containsPhrase(normDesc, 'amaravati');
+      if (hasAmaravatiInTitle) {
+        return { score: 96, isRelevant: true, reason: 'Headline directly covers Amaravati', isIncidental: false };
+      }
+      if (hasAmaravatiInDesc) {
+        return { score: 80, isRelevant: true, reason: 'Amaravati capital coverage confirmed in article', isIncidental: false };
+      }
+      // If zero Amaravati mention at all:
+      return { score: 10, isRelevant: false, reason: 'Does not cover Amaravati specifically', isIncidental: true };
+    }
+
+    if (hasAndhraInTitle) {
       return {
         score: 95,
         isRelevant: true,
@@ -270,7 +515,7 @@ export function scoreArticleRelevance(article, processedQuery) {
       };
     }
 
-    if (hasAndhraContextInBody) {
+    if (hasAndhraInBody) {
       return {
         score: 75,
         isRelevant: true,
@@ -279,7 +524,6 @@ export function scoreArticleRelevance(article, processedQuery) {
       };
     }
 
-    // No Andhra context found at all
     return {
       score: 0,
       isRelevant: false,
@@ -288,21 +532,21 @@ export function scoreArticleRelevance(article, processedQuery) {
     };
   }
 
-  // Rule 2: India National News
+  // Rule B: India National News vs Indiana / Indianapolis
   if (entityType === 'INDIA_NATIONAL') {
-    const indianKeywords = [
-      'india', 'indian', 'delhi', 'new delhi', 'mumbai', 'modi', 'bjp', 'congress',
-      'parliament', 'lok sabha', 'rajya sabha', 'supreme court of india', 'isro',
-      'rbi', 'reserve bank of india', 'rupee', 'nirmala sitharaman', 'amit shah',
-      'rahul gandhi', 'indian army', 'indian railways'
-    ];
-
     const isIndianaOrUnrelated =
       (containsPhrase(normTitle, 'indiana') || containsPhrase(normTitle, 'indianapolis')) &&
       !containsPhrase(normTitle, 'india');
     if (isIndianaOrUnrelated) {
       return { score: 0, isRelevant: false, reason: 'Refers to Indiana or Indianapolis, not India', isIncidental: true };
     }
+
+    const indianKeywords = [
+      'india', 'indian', 'delhi', 'new delhi', 'mumbai', 'modi', 'bjp', 'congress',
+      'parliament', 'lok sabha', 'rajya sabha', 'supreme court of india', 'isro',
+      'rbi', 'reserve bank of india', 'rupee', 'nirmala sitharaman', 'amit shah',
+      'rahul gandhi', 'indian army', 'indian railways'
+    ];
 
     const hasIndiaInTitle = indianKeywords.some((kw) => containsWord(normTitle, kw) || containsPhrase(normTitle, kw));
     const hasIndiaInDesc = indianKeywords.some((kw) => containsWord(normDesc, kw) || containsPhrase(normDesc, kw));
@@ -316,31 +560,7 @@ export function scoreArticleRelevance(article, processedQuery) {
     return { score: 12, isRelevant: false, reason: 'Lacks genuine Indian national news substance', isIncidental: true };
   }
 
-  // Rule 3: Hyderabad News
-  if (entityType === 'HYDERABAD') {
-    const hasHydInTitle = containsWord(normTitle, 'hyderabad') || containsPhrase(normTitle, 'hyderabad');
-    const hasHydInDesc = containsWord(normDesc, 'hyderabad') || containsPhrase(normDesc, 'telangana');
-    if (hasHydInTitle) return { score: 95, isRelevant: true, reason: 'Direct Hyderabad coverage in headline', isIncidental: false };
-    if (hasHydInDesc) return { score: 75, isRelevant: true, reason: 'Hyderabad / Telangana context confirmed', isIncidental: false };
-    return { score: 10, isRelevant: false, reason: 'No Hyderabad context found', isIncidental: true };
-  }
-
-  // Rule 4: Technology Desk
-  if (entityType === 'TECHNOLOGY') {
-    const techKeywords = [
-      'technology', 'tech', 'software', 'hardware', 'ai', 'artificial intelligence',
-      'semiconductor', 'chip', 'chips', 'computing', 'cybersecurity', 'internet',
-      'app', 'apps', 'smartphone', 'robotics', 'cloud', 'quantum', 'algorithm',
-      'gadget', 'crypto', 'blockchain', 'apple', 'google', 'microsoft', 'nvidia'
-    ];
-    const hasTechInTitle = techKeywords.some((kw) => containsWord(normTitle, kw) || containsPhrase(normTitle, kw));
-    const hasTechInDesc = techKeywords.some((kw) => containsWord(normDesc, kw) || containsPhrase(normDesc, kw));
-    if (hasTechInTitle) return { score: 88, isRelevant: true, reason: 'Headline focuses directly on technology', isIncidental: false };
-    if (hasTechInDesc) return { score: 68, isRelevant: true, reason: 'Article summary covers technology', isIncidental: false };
-    return { score: 18, isRelevant: false, reason: 'General business or politics without tech substance', isIncidental: true };
-  }
-
-  // Rule 2: Tesla
+  // Rule C: Tesla Primary Subject vs Incidental Mention
   if (entityType === 'TESLA') {
     const isTeslaInTitle =
       containsWord(title, 'Tesla') ||
@@ -357,12 +577,11 @@ export function scoreArticleRelevance(article, processedQuery) {
       };
     }
 
-    // Tesla NOT in title: inspect description and content for substance vs incidental mention
+    // Tesla NOT in title: check for incidental list mention vs genuine EV story
     const countInDesc = (normDesc.match(/\btesla\b/g) || []).length;
     const countInContent = (normContent.match(/\btesla\b/g) || []).length;
     const totalMentions = countInDesc + countInContent;
 
-    // Check if article is primarily about another distinct topic (e.g. Biden policy, Apple, General EV bill)
     const unrelatedTitleSubjects = [
       'biden', 'trump', 'harris', 'white house', 'senate', 'congress',
       'apple', 'google', 'amazon', 'spacex', 'meta', 'boeing', 'oil',
@@ -370,8 +589,6 @@ export function scoreArticleRelevance(article, processedQuery) {
     ];
     const hasOtherTitleSubject = unrelatedTitleSubjects.some((s) => containsPhrase(normTitle, s));
 
-    // If Tesla is mentioned only once in a list ("companies like Ford, GM and Tesla")
-    // or as a fleeting comparison, reject as incidental!
     if (totalMentions <= 1 || (hasOtherTitleSubject && totalMentions < 3)) {
       return {
         score: 18,
@@ -381,13 +598,11 @@ export function scoreArticleRelevance(article, processedQuery) {
       };
     }
 
-    // Multi-mention in description and content with substantive EV context
     const hasEvContext =
       containsPhrase(normDesc, 'electric vehicle') ||
       containsPhrase(normDesc, 'ev') ||
       containsPhrase(normDesc, 'elon musk') ||
       containsPhrase(normDesc, 'automaker') ||
-      containsPhrase(normDesc, 'autopilot') ||
       containsPhrase(normDesc, 'supercharger');
 
     if (totalMentions >= 2 && hasEvContext) {
@@ -407,7 +622,7 @@ export function scoreArticleRelevance(article, processedQuery) {
     };
   }
 
-  // Rule 3: Artificial Intelligence
+  // Rule D: Artificial Intelligence
   if (entityType === 'ARTIFICIAL_INTELLIGENCE') {
     const aiPrimaryKeywords = [
       'artificial intelligence', 'generative ai', 'openai', 'chatgpt',
@@ -429,11 +644,9 @@ export function scoreArticleRelevance(article, processedQuery) {
       };
     }
 
-    // Not in title: check if description is deeply focused on AI
     const countAiInDesc = aiPrimaryKeywords.filter((kw) => containsPhrase(normDesc, kw)).length;
     const hasAiWordInDesc = containsWord(desc, 'AI');
 
-    // Reject incidental mentions (e.g. gadget review mentioning "AI camera" once)
     const isGadgetOrUnrelatedTitle =
       containsPhrase(normTitle, 'smartphone') ||
       containsPhrase(normTitle, 'camera') ||
@@ -469,70 +682,107 @@ export function scoreArticleRelevance(article, processedQuery) {
   }
 
   // -------------------------------------------------------------
-  // GENERAL QUERY RELEVANCE SCORING
+  // 2. GENERAL & MULTI-WORD QUERY RELEVANCE ENGINE
   // -------------------------------------------------------------
 
-  let score = 0;
-  const isExactPhraseInTitle = containsPhrase(normTitle, query);
-  const isExactPhraseInDesc = containsPhrase(normDesc, query);
+  const searchTargetPhrase = normalizeText(coreQuery || rawQuery);
+  const searchCleanPhrase = normalizeText(rawQuery);
 
-  if (tokens.length === 0) {
+  const isExactPhraseInTitle =
+    (searchTargetPhrase && containsPhrase(normTitle, searchTargetPhrase)) ||
+    (searchCleanPhrase && containsPhrase(normTitle, searchCleanPhrase));
+
+  const isExactPhraseInDesc =
+    (searchTargetPhrase && containsPhrase(normDesc, searchTargetPhrase)) ||
+    (searchCleanPhrase && containsPhrase(normDesc, searchCleanPhrase));
+
+  const activeTokens = coreTokens.length > 0 ? coreTokens : extractTokens(rawQuery);
+  if (activeTokens.length === 0) {
     return { score: 0, isRelevant: false, reason: 'Empty query tokens' };
   }
 
-  // 1. Title Token Overlap (Max 60 points)
-  const titleMatchedTokens = tokens.filter((t) => containsWord(normTitle, t));
-  const titleMatchRatio = titleMatchedTokens.length / tokens.length;
+  const titleMatchedTokens = activeTokens.filter((t) => matchesTokenOrStem(normTitle, t));
+  const descMatchedTokens = activeTokens.filter((t) => matchesTokenOrStem(normDesc, t));
+  const contentMatchedTokens = activeTokens.filter((t) => matchesTokenOrStem(normContent, t));
 
+  const titleMatchRatio = activeTokens.length > 0 ? titleMatchedTokens.length / activeTokens.length : 0;
+  const descMatchRatio = activeTokens.length > 0 ? descMatchedTokens.length / activeTokens.length : 0;
+  const descTokenRatio = descMatchRatio;
+
+  let score = 0;
+
+  // A. Headline Matching (Primary Factor — Max 65 Points)
   if (isExactPhraseInTitle) {
-    score += 60;
+    score += 65;
   } else if (titleMatchRatio === 1) {
-    score += 52;
+    score += 54;
   } else if (titleMatchRatio >= 0.5) {
-    score += Math.round(titleMatchRatio * 40);
+    score += Math.round(titleMatchRatio * 44);
   } else if (titleMatchedTokens.length > 0) {
-    score += 15;
+    score += 18;
   }
 
-  // 2. Description Token Overlap (Max 30 points)
-  const descMatchedTokens = tokens.filter((t) => containsWord(normDesc, t));
-  const descMatchRatio = descMatchedTokens.length / tokens.length;
-
+  // B. Description Matching (Secondary Factor — Max 32 Points)
   if (isExactPhraseInDesc) {
-    score += 30;
-  } else if (descMatchRatio === 1) {
-    score += 24;
-  } else if (descMatchRatio >= 0.5) {
-    score += Math.round(descMatchRatio * 18);
+    score += 32;
+  } else if (descTokenRatio === 1) {
+    score += 20;
+  } else if (descTokenRatio >= 0.5) {
+    score += Math.round(descTokenRatio * 16);
   } else if (descMatchedTokens.length > 0) {
     score += 8;
   }
 
-  // 3. Content / Source Support (Max 10 points)
-  const contentMatchedTokens = tokens.filter((t) => containsWord(normContent, t));
-  if (contentMatchedTokens.length >= tokens.length) {
+  // C. Content & Supporting Context (Max 10 Points)
+  if (contentMatchedTokens.length >= activeTokens.length) {
     score += 10;
   } else if (contentMatchedTokens.length > 0) {
     score += 5;
   }
 
-  // 4. Incidental Mention Penalties
-  // If NO query token appeared in title at all:
-  if (titleMatchedTokens.length === 0) {
-    score -= 25; // Strict penalty: headlines define relevance in news media
+  // D. Synonym / Alternate Wording Support
+  const hasSynonymInTitle = synonymKeywords.length > 0 &&
+    synonymKeywords.some((kw) => containsPhrase(normTitle, kw) || containsWord(normTitle, kw));
+  const hasSynonymInDesc = synonymKeywords.length > 0 &&
+    synonymKeywords.some((kw) => containsPhrase(normDesc, kw) || containsWord(normDesc, kw));
+
+  if (hasSynonymInTitle) {
+    score += 48;
+  }
+  if (hasSynonymInDesc) {
+    score += 18;
   }
 
-  // If combined token match across title + desc is less than 50% of the query:
-  const totalUniqueMatches = new Set([...titleMatchedTokens, ...descMatchedTokens]).size;
-  if (totalUniqueMatches / tokens.length < 0.5) {
-    score -= 30;
+  // E. Specific Focus Term Bonus (e.g. Amaravati, Modi, Google)
+  if (focusTerm) {
+    if (containsWord(normTitle, focusTerm) || containsPhrase(normTitle, focusTerm)) {
+      score += 18;
+    } else if (containsWord(normDesc, focusTerm) || containsPhrase(normDesc, focusTerm)) {
+      score += 10;
+    }
+  }
+
+  // F. Incidental Mention Penalties
+  // If NO query token appeared in the headline AND no synonym in headline:
+  const hasAnyHeadlineMatch = titleMatchedTokens.length > 0 || hasSynonymInTitle;
+
+  if (!hasAnyHeadlineMatch) {
+    // If the description contains the full exact phrase, apply only light penalty (-12)
+    // If it only has fragmented tokens without headline presence, apply strict penalty (-24)
+    score -= isExactPhraseInDesc ? 12 : 24;
+  }
+
+  // If combined token match across title + desc is low for multi-word queries:
+  const uniqueMatchedTokens = new Set([...titleMatchedTokens, ...descMatchedTokens]);
+  if (activeTokens.length >= 2 && !isExactPhraseInDesc && !hasSynonymInTitle && (uniqueMatchedTokens.size / activeTokens.length) < 0.5) {
+    score -= 25;
   }
 
   // Normalize score bounds (0 - 100)
   score = Math.max(0, Math.min(100, score));
 
-  // Minimum threshold for passing relevance: 32 / 100
-  const MIN_RELEVANCE_THRESHOLD = 32;
+  // Minimum threshold for passing relevance: 28 / 100
+  const MIN_RELEVANCE_THRESHOLD = 28;
   const isRelevant = score >= MIN_RELEVANCE_THRESHOLD;
 
   let reason = 'Relevant news story';
@@ -549,7 +799,7 @@ export function scoreArticleRelevance(article, processedQuery) {
     isRelevant,
     reason,
     isIncidental: !isRelevant,
-    matchedTokens: Array.from(new Set([...titleMatchedTokens, ...descMatchedTokens])),
+    matchedTokens: Array.from(uniqueMatchedTokens),
   };
 }
 
@@ -557,7 +807,7 @@ export function scoreArticleRelevance(article, processedQuery) {
  * Filter, score, and rank search results by relevance and publication recency.
  */
 export function filterAndRankSearchResults(articles, rawQuery, options = {}) {
-  const { minScore = 32, maxResults = 50 } = options;
+  const { minScore = 28, maxResults = 50 } = options;
   const processedQuery = processSearchQuery(rawQuery);
 
   if (!Array.isArray(articles) || articles.length === 0) {
@@ -587,15 +837,29 @@ export function filterAndRankSearchResults(articles, rawQuery, options = {}) {
     }
   }
 
-  // Sort by relevance score descending, then by publication date descending
+  // Rank by relevance score descending. When relevance is comparable (within 12 points),
+  // prioritize publication recency (newest first).
   scoredArticles.sort((a, b) => {
-    const diff = (b._relevanceScore || 0) - (a._relevanceScore || 0);
-    if (Math.abs(diff) >= 15) return diff; // Strong relevance takes precedence
+    const scoreA = a._relevanceScore || 0;
+    const scoreB = b._relevanceScore || 0;
+    const diff = scoreB - scoreA;
 
-    // If relevance is comparable, newer article wins
+    // Strong relevance difference takes strict precedence
+    if (Math.abs(diff) >= 12) {
+      return diff;
+    }
+
+    // Comparable relevance: newer article wins
     const timeA = new Date(a.publishedAt).getTime();
     const timeB = new Date(b.publishedAt).getTime();
-    return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
+    const validA = !isNaN(timeA);
+    const validB = !isNaN(timeB);
+
+    if (validA && validB && timeA !== timeB) {
+      return timeB - timeA;
+    }
+
+    return diff;
   });
 
   const finalArticles = scoredArticles.slice(0, maxResults);
