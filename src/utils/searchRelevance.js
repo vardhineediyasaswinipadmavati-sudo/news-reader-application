@@ -165,6 +165,14 @@ const TOPIC_REGISTRY = [
       /\bandhra(\s+pradesh)?\s+(assembly\s+polls?|elections?|polls?)\b/i.test(q),
     providerQuery: '"Andhra Pradesh" OR "AP elections" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP',
     synonyms: ['andhra pradesh', 'amaravati', 'ysrcp', 'tdp', 'jagan', 'chandrababu', 'naidu', 'pawan kalyan', 'ap assembly', 'ap elections'],
+    relatedSearches: [
+      'Andhra Pradesh Assembly Elections',
+      'Amaravati Capital Works',
+      'TDP vs YSRCP News',
+      'Pawan Kalyan Speeches',
+      'AP Election Results Analysis',
+      'Andhra Pradesh Voter Turnout',
+    ],
     isRegionalAP: true,
   },
 
@@ -175,6 +183,14 @@ const TOPIC_REGISTRY = [
     providerQuery: 'Amaravati OR "Amaravati capital"',
     synonyms: ['amaravati', 'andhra pradesh capital', 'crda', 'andhra pradesh'],
     focusTerm: 'amaravati',
+    relatedSearches: [
+      'Amaravati CRDA Master Plan',
+      'Andhra Pradesh Capital Budget',
+      'Vijayawada Amaravati Highway',
+      'Amaravati Seed Access Road',
+      'Chandrababu Naidu Amaravati',
+      'AP High Court Amaravati',
+    ],
     isRegionalAP: true,
   },
 
@@ -190,6 +206,14 @@ const TOPIC_REGISTRY = [
       q.toLowerCase() === 'andhra pradesh',
     providerQuery: '"Andhra Pradesh" OR "AP politics" OR "AP government" OR Amaravati OR Visakhapatnam OR YSRCP OR TDP',
     synonyms: ['andhra pradesh', 'andhra', 'amaravati', 'visakhapatnam', 'vizag', 'vijayawada', 'ysrcp', 'tdp', 'jagan', 'chandrababu', 'naidu', 'pawan kalyan', 'jana sena', 'ap assembly', 'ap politics', 'ap govt'],
+    relatedSearches: [
+      'AP Politics & Government',
+      'Amaravati Capital Construction',
+      'Visakhapatnam IT & Port',
+      'Chandrababu Naidu Announcements',
+      'Pawan Kalyan Jana Sena',
+      'Polavaram Project Updates',
+    ],
     isRegionalAP: true,
   },
 
@@ -200,6 +224,14 @@ const TOPIC_REGISTRY = [
     providerQuery: '"Narendra Modi" OR "PM Modi" OR Modi',
     synonyms: ['narendra modi', 'pm modi', 'modi', 'prime minister modi', 'bjp', 'new delhi'],
     focusTerm: 'modi',
+    relatedSearches: [
+      'PM Modi Speeches',
+      'Modi Cabinet Decisions',
+      'India Foreign Policy Briefing',
+      'BJP National Executive',
+      'New Delhi Government Updates',
+      'Make in India Semiconductor',
+    ],
   },
 
   // 5. Companies / Organizations: Google / Alphabet
@@ -209,6 +241,14 @@ const TOPIC_REGISTRY = [
     providerQuery: 'Google OR Alphabet',
     synonyms: ['google', 'alphabet', 'sundar pichai', 'gemini', 'android', 'pixel'],
     focusTerm: 'google',
+    relatedSearches: [
+      'Alphabet Quarterly Earnings',
+      'Google Gemini AI',
+      'Android 15 OS',
+      'Sundar Pichai Keynote',
+      'Google Cloud Computing',
+      'Google Search AI Overview',
+    ],
   },
 
   // 6. Companies: Tesla
@@ -218,6 +258,14 @@ const TOPIC_REGISTRY = [
     providerQuery: 'Tesla OR TSLA OR Cybertruck',
     synonyms: ['tesla', 'tsla', 'cybertruck', 'gigafactory', 'elon musk', 'electric vehicle'],
     focusTerm: 'tesla',
+    relatedSearches: [
+      'Tesla Model Y Delivery',
+      'Elon Musk News',
+      'Electric Vehicles Market',
+      'Tesla Gigafactory Expansion',
+      'Cybertruck Updates',
+      'EV Battery Technology',
+    ],
   },
 
   // 7. Sports: Cricket World Cup
@@ -227,6 +275,14 @@ const TOPIC_REGISTRY = [
     providerQuery: '"Cricket World Cup" OR "ICC World Cup"',
     synonyms: ['cricket world cup', 'icc world cup', 'world cup', 'cricket', 'icc', 'bcci', 'team india', 'odi', 'final'],
     focusTerm: 'world cup',
+    relatedSearches: [
+      'ICC World Cup Schedule',
+      'India vs Australia Cricket',
+      'World Cup Points Table',
+      'T20 World Cup Highlights',
+      'BCCI Team India Squad',
+      'Cricket World Cup Final',
+    ],
   },
 
   // 8. India Technology News
@@ -238,6 +294,14 @@ const TOPIC_REGISTRY = [
        /\bindian?\s+(tech|technology|it\s+sector)\b/i.test(q)),
     providerQuery: 'India (technology OR tech OR semiconductor)',
     synonyms: ['india', 'indian', 'technology', 'tech', 'semiconductor', 'it sector', 'bengaluru', 'isro', 'startups', 'electronics'],
+    relatedSearches: [
+      'India Semiconductor Mission',
+      'ISRO Space Missions',
+      'Bengaluru Startup Ecosystem',
+      'India AI Strategy',
+      'IT Services Sector Exports',
+      'Digital Public Infrastructure UPI',
+    ],
   },
 
   // 9. India National News
@@ -250,6 +314,14 @@ const TOPIC_REGISTRY = [
       q.toLowerCase() === 'india',
     providerQuery: 'India national news OR "India news"',
     synonyms: ['india', 'indian', 'delhi', 'new delhi', 'mumbai', 'modi', 'bjp', 'congress', 'parliament', 'lok sabha', 'isro', 'rbi', 'rupee'],
+    relatedSearches: [
+      'Lok Sabha Parliament News',
+      'RBI Repo Rate Projections',
+      'Supreme Court of India Rulings',
+      'India Economy Growth Forecast',
+      'New Delhi Policy Briefings',
+      'Indian Railways Modernization',
+    ],
   },
 
   // 10. Hyderabad
@@ -259,6 +331,14 @@ const TOPIC_REGISTRY = [
     providerQuery: 'Hyderabad Telangana news',
     synonyms: ['hyderabad', 'telangana'],
     focusTerm: 'hyderabad',
+    relatedSearches: [
+      'Telangana Politics News',
+      'Hyderabad Real Estate Trends',
+      'HITEC City Tech Hub',
+      'Hyderabad Metro Rail Expansion',
+      'Telangana Economy & Budget',
+      'Cyberabad Police Advisories',
+    ],
   },
 
   // 11. World News
@@ -267,6 +347,14 @@ const TOPIC_REGISTRY = [
     test: (q) => /\b(world\s+news|international\s+news|global\s+affairs)\b/i.test(q),
     providerQuery: 'world international news',
     synonyms: ['world', 'international', 'global', 'diplomacy', 'united nations'],
+    relatedSearches: [
+      'US Presidential Election',
+      'Middle East Diplomatic Talks',
+      'European Union Energy Policy',
+      'Global Economic Outlook',
+      'United Nations Security Council',
+      'Asia Pacific Trade Accords',
+    ],
   },
 
   // 12. Technology Desk
@@ -279,6 +367,14 @@ const TOPIC_REGISTRY = [
       q.toLowerCase() === 'tech',
     providerQuery: 'technology software hardware computing',
     synonyms: ['technology', 'tech', 'software', 'hardware', 'ai', 'semiconductor', 'computing', 'cybersecurity', 'cloud'],
+    relatedSearches: [
+      'Artificial Intelligence Frontier',
+      'Semiconductor Chip Shortage',
+      'Enterprise Cybersecurity',
+      'Cloud Infrastructure Trends',
+      'Quantum Computing Breakthroughs',
+      'Consumer Tech Hardware',
+    ],
   },
 
   // 13. Artificial Intelligence / AI
@@ -291,6 +387,14 @@ const TOPIC_REGISTRY = [
     providerQuery: '"Artificial Intelligence" OR "Generative AI" OR AI',
     synonyms: ['artificial intelligence', 'ai', 'generative ai', 'openai', 'chatgpt', 'anthropic', 'claude', 'gemini', 'deepmind', 'llm', 'machine learning', 'deep learning', 'neural network', 'superintelligence', 'agi'],
     focusTerm: 'ai',
+    relatedSearches: [
+      'Generative AI Models',
+      'OpenAI ChatGPT Updates',
+      'Anthropic Claude Reasoning',
+      'AI Chips & Hardware',
+      'Machine Learning Research',
+      'AI Safety & Governance',
+    ],
   },
 
   // 14. India Cricket
@@ -301,6 +405,14 @@ const TOPIC_REGISTRY = [
       (/\bcricket\b/i.test(q) && /\bindia\b/i.test(q)),
     providerQuery: '"Indian cricket" OR BCCI OR IPL OR "Team India cricket"',
     synonyms: ['cricket', 'bcci', 'ipl', 'team india', 'rohit sharma', 'virat kohli'],
+    relatedSearches: [
+      'IPL 2026 Schedule',
+      'BCCI Team India News',
+      'Rohit Sharma Captaincy',
+      'Virat Kohli Batting Stats',
+      'India Test Match Series',
+      'ICC World Test Championship',
+    ],
   },
 
   // 15. Semiconductor Industry
@@ -309,6 +421,14 @@ const TOPIC_REGISTRY = [
     test: (q) => /\b(semiconductors?|chipmakers?|tsmc|nvidia\s+chips?|intel\s+foundry|microchips?)\b/i.test(q),
     providerQuery: 'semiconductor OR chipmakers OR TSMC OR microchips',
     synonyms: ['semiconductor', 'semiconductors', 'chip', 'chips', 'chipmaker', 'foundry', 'tsmc', 'intel'],
+    relatedSearches: [
+      'TSMC Foundry Expansion',
+      'Nvidia AI Accelerators',
+      'Intel Core Ultra Processors',
+      'Silicon Wafer Manufacturing',
+      'Global Chip Subsidies',
+      'ASML Lithography Tech',
+    ],
   },
 
   // 16. Electric Vehicles
@@ -318,8 +438,172 @@ const TOPIC_REGISTRY = [
     providerQuery: '"electric vehicles" OR EV OR EVs OR "electric car"',
     synonyms: ['electric vehicle', 'electric vehicles', 'ev', 'evs', 'charging', 'battery', 'automaker'],
     focusTerm: 'ev',
+    relatedSearches: [
+      'EV Charging Station Network',
+      'Solid State EV Batteries',
+      'Tesla Cybertruck & Model Y',
+      'Clean Transport Subsidies',
+      'Electric Two-Wheelers Market',
+      'Hybrid vs Electric Cars',
+    ],
+  },
+
+  // 17. Apple Inc.
+  {
+    id: 'TECH_APPLE',
+    test: (q) => /^\s*apple\s*$/i.test(q) || /\b(apple|aapl|iphone|tim\s+cook|ipad|macbook)\b/i.test(q),
+    providerQuery: 'Apple OR iPhone OR "Tim Cook"',
+    synonyms: ['apple', 'iphone', 'tim cook', 'ipad', 'macbook', 'ios', 'apple intelligence'],
+    focusTerm: 'apple',
+    relatedSearches: [
+      'Apple Vision Pro Ecosystem',
+      'iPhone 16 Pro Updates',
+      'Tim Cook Keynote Address',
+      'iOS Next-Gen Features',
+      'Apple Intelligence AI',
+      'MacBook M4 Silicon',
+    ],
+  },
+
+  // 18. Microsoft
+  {
+    id: 'TECH_MICROSOFT',
+    test: (q) => /^\s*microsoft\s*$/i.test(q) || /\b(microsoft|satya\s+nadella|windows\s+11|copilot)\b/i.test(q),
+    providerQuery: 'Microsoft OR "Satya Nadella"',
+    synonyms: ['microsoft', 'satya nadella', 'copilot', 'azure', 'windows'],
+    focusTerm: 'microsoft',
+    relatedSearches: [
+      'Microsoft Copilot Workspace',
+      'Azure Cloud Revenue Growth',
+      'Satya Nadella Keynote',
+      'Windows 11 AI Integration',
+      'OpenAI Microsoft Alliance',
+      'Xbox Gaming Industry',
+    ],
+  },
+
+  // 19. Nvidia
+  {
+    id: 'TECH_NVIDIA',
+    test: (q) => /\b(nvidia|nvda|jensen\s+huang)\b/i.test(q),
+    providerQuery: 'Nvidia OR NVDA OR "Jensen Huang"',
+    synonyms: ['nvidia', 'nvda', 'jensen huang', 'gpu', 'ai chips'],
+    focusTerm: 'nvidia',
+    relatedSearches: [
+      'Nvidia Blackwell Architecture',
+      'Jensen Huang Keynote',
+      'AI Data Center Infrastructure',
+      'Nvidia Quarterly Earnings',
+      'CUDA Developer Platform',
+      'Enterprise GPU Clusters',
+    ],
+  },
+
+  // 20. ISRO
+  {
+    id: 'ISRO',
+    test: (q) => /\b(isro|chandrayaan|gaganyaan|indian\s+space\s+research)\b/i.test(q),
+    providerQuery: 'ISRO OR Chandrayaan OR "Indian Space Research"',
+    synonyms: ['isro', 'chandrayaan', 'gaganyaan', 'space', 'satellite'],
+    focusTerm: 'isro',
+    relatedSearches: [
+      'ISRO Gaganyaan Human Spaceflight',
+      'Chandrayaan 4 Lunar Mission',
+      'Aditya L1 Solar Research',
+      'SSLV Commercial Rocket Launches',
+      'Indian Private Space Startups',
+      'NASA ISRO NISAR Satellite',
+    ],
+  },
+
+  // 21. Cybersecurity
+  {
+    id: 'CYBERSECURITY',
+    test: (q) => /\b(cybersecurity|cyber\s+security|infosec|ransomware|malware|data\s+breach)\b/i.test(q),
+    providerQuery: 'cybersecurity OR ransomware OR "data breach"',
+    synonyms: ['cybersecurity', 'cyber security', 'infosec', 'ransomware', 'malware', 'breach', 'hacker'],
+    relatedSearches: [
+      'Zero Day Threat Reports',
+      'Ransomware Attack Trends',
+      'Cloud Security Posture',
+      'CISA Advisory Bulletins',
+      'Data Breach Forensics',
+      'AI in Cybersecurity Defense',
+    ],
+  },
+
+  // 22. Clean Energy
+  {
+    id: 'CLEAN_ENERGY',
+    test: (q) => /\b(clean\s+energy|renewable\s+energy|solar\s+power|wind\s+energy|green\s+hydrogen)\b/i.test(q),
+    providerQuery: '"clean energy" OR "renewable energy" OR solar',
+    synonyms: ['clean energy', 'renewable energy', 'solar', 'wind', 'green hydrogen'],
+    relatedSearches: [
+      'Solar Photovoltaic Efficiency',
+      'Green Hydrogen Initiatives',
+      'Offshore Wind Farm Projects',
+      'Grid Energy Storage Batteries',
+      'Nuclear SMR Technology',
+      'Renewable Energy Transition',
+    ],
+  },
+
+  // 23. Global Markets / Wall Street
+  {
+    id: 'GLOBAL_MARKETS',
+    test: (q) => /\b(global\s+markets|stock\s+markets?|wall\s+street|equities|sensex|nifty|inflation)\b/i.test(q),
+    providerQuery: '"global markets" OR "stock market" OR "Wall Street"',
+    synonyms: ['markets', 'stocks', 'wall street', 'sensex', 'nifty', 'inflation', 'equities'],
+    relatedSearches: [
+      'Federal Reserve Interest Rates',
+      'Wall Street Stock Rally',
+      'US Treasury Bond Yields',
+      'Global Inflation Indicators',
+      'Sensex Nifty Record Highs',
+      'OPEC Crude Oil Production',
+    ],
   },
 ];
+
+/**
+ * Generate 5–6 relevant search suggestions based on the user's current search query.
+ * Suggestions include related topics, synonyms, entities, and specific subtopics.
+ * If relevant suggestions cannot be generated (e.g. invalid/gibberish query), returns an empty array.
+ */
+export function getRelatedSearches(query) {
+  if (!query || typeof query !== 'string') return [];
+  const clean = query.trim();
+  if (!clean || clean.length < 2) return [];
+
+  const processed = processSearchQuery(clean);
+  const naturalCore = processed.coreQuery || clean;
+  const lowerQuery = clean.toLowerCase();
+  const lowerCore = naturalCore.toLowerCase();
+
+  // Find matching topic in registry
+  let suggestions = [];
+
+  const matched = TOPIC_REGISTRY.find(
+    (t) => t.test(clean) || (naturalCore && t.test(naturalCore))
+  );
+
+  if (matched && Array.isArray(matched.relatedSearches)) {
+    suggestions = matched.relatedSearches;
+  }
+
+  // Filter out any suggestion that is identical (case-insensitive) to current query
+  const filtered = suggestions.filter((s) => {
+    const sLower = s.toLowerCase();
+    return sLower !== lowerQuery && sLower !== lowerCore;
+  });
+
+  // Return exactly 5–6 suggestions if available; otherwise empty array (Requirement 8)
+  if (filtered.length >= 4) {
+    return filtered.slice(0, 6);
+  }
+
+  return [];
+}
 
 /**
  * Process raw user search query to detect structure, natural-language intents,
@@ -756,7 +1040,7 @@ export function scoreArticleRelevance(article, processedQuery) {
   // E. Specific Focus Term Bonus (e.g. Amaravati, Modi, Google)
   if (focusTerm) {
     if (containsWord(normTitle, focusTerm) || containsPhrase(normTitle, focusTerm)) {
-      score += 18;
+      score += 20;
     } else if (containsWord(normDesc, focusTerm) || containsPhrase(normDesc, focusTerm)) {
       score += 10;
     }

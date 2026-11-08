@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { Search, ArrowLeft, Sparkles, Filter, ShieldCheck, RefreshCw, ChevronDown } from 'lucide-react';
+import { Search, ArrowLeft, Sparkles, Filter, ShieldCheck, RefreshCw, ChevronDown, ArrowRight } from 'lucide-react';
 import { searchNewsArticles } from '../services/newsApi';
 import { useApiKey } from '../context/ApiKeyContext';
 import NewsCard from '../components/NewsCard';
@@ -8,6 +8,7 @@ import { EditorialGridSkeleton } from '../components/SkeletonLoader';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
 import SearchBar from '../components/SearchBar';
+import { getRelatedSearches } from '../utils/searchRelevance';
 
 const POPULAR_TOPICS = [
   'AP Politics',
@@ -25,6 +26,8 @@ export default function SearchPage() {
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
   const { apiKey, provider } = useApiKey();
+
+  const relatedSearches = useMemo(() => getRelatedSearches(query), [query]);
 
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -325,6 +328,30 @@ export default function SearchPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Related Searches Section */}
+      {!loading && !error && query && relatedSearches.length > 0 && (
+        <section className="related-searches-section" aria-label="Related Searches">
+          <div className="related-searches-header">
+            <Sparkles size={16} className="related-searches-icon" />
+            <h2 className="related-searches-title">Related Searches</h2>
+          </div>
+          <div className="related-searches-grid">
+            {relatedSearches.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => handleTopicClick(item)}
+                className="related-search-card"
+              >
+                <Search size={14} className="related-search-query-icon" />
+                <span className="related-search-label">{item}</span>
+                <ArrowRight size={14} className="related-search-arrow" />
+              </button>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

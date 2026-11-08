@@ -58,7 +58,7 @@ describe('SearchPage Strict Relevance & Filtering Integration', () => {
 
     // Verify the Andhra Pradesh story appears
     await waitFor(() => {
-      expect(screen.getByText(/Andhra Pradesh Assembly Elections/i)).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /Andhra Pradesh Assembly Elections: Polling/i })).toBeInTheDocument();
     });
 
     // Verify filter badge shows that 1 unrelated article was excluded
@@ -146,5 +146,72 @@ describe('SearchPage Strict Relevance & Filtering Integration', () => {
     });
 
     expect(searchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('displays Related Searches section with suggestions and handles click to re-search', async () => {
+    vi.spyOn(newsApi, 'searchNewsArticles').mockResolvedValue({
+      articles: [
+        {
+          id: 'ai-1',
+          title: 'Frontier AI models demonstrate breakthrough reasoning in scientific benchmarks',
+          description: 'Researchers evaluate new neural network architectures across mathematics.',
+          publishedAt: '2026-11-04T10:00:00Z',
+          source: { name: 'MIT Tech Review' },
+        },
+      ],
+      totalResults: 1,
+      originalCount: 1,
+      filteredCount: 0,
+      query: 'Artificial Intelligence',
+      entityType: 'ARTIFICIAL_INTELLIGENCE',
+      hasMore: false,
+    });
+
+    renderSearchPage(['/search?q=Artificial%20Intelligence']);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Frontier AI models/i)).toBeInTheDocument();
+    });
+
+    // Check Related Searches section is rendered
+    const relatedSection = screen.getByRole('region', { name: /Related Searches/i });
+    expect(relatedSection).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Related Searches/i })).toBeInTheDocument();
+
+    // Verify suggestions are rendered as clickable buttons
+    const genAiBtn = screen.getByRole('button', { name: /Generative AI Models/i });
+    expect(genAiBtn).toBeInTheDocument();
+
+    // Click on suggestion
+    fireEvent.click(genAiBtn);
+
+    // Should re-trigger search with the clicked topic
+    await waitFor(() => {
+      expect(newsApi.searchNewsArticles).toHaveBeenCalledWith(
+        expect.objectContaining({ query: 'Generative AI Models' })
+      );
+    });
+  });
+
+  it('hides Related Searches section when query is unrecognized or gibberish', async () => {
+    vi.spyOn(newsApi, 'searchNewsArticles').mockResolvedValueOnce({
+      articles: [],
+      totalResults: 0,
+      originalCount: 0,
+      filteredCount: 0,
+      query: 'xyzqwe123gibberish',
+      entityType: 'GENERIC',
+      hasMore: false,
+    });
+
+    renderSearchPage(['/search?q=xyzqwe123gibberish']);
+
+    await waitFor(() => {
+      expect(screen.getByText(/No Relevant Stories Found/i)).toBeInTheDocument();
+    });
+
+    // Related searches section should be completely absent
+    expect(screen.queryByRole('region', { name: /Related Searches/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Related Searches/i })).not.toBeInTheDocument();
   });
 });

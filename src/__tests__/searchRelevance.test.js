@@ -6,17 +6,23 @@ import {
   deduplicateArticles,
   diversifyPublishers,
   isArticleRelevantToCategory,
+  getRelatedSearches,
 } from '../utils/searchRelevance';
 
 describe('Search Relevance & Query Processing Engine', () => {
   describe('processSearchQuery', () => {
     it('normalizes query and extracts tokens', () => {
-      const result = processSearchQuery('  Global   Markets 2026!  ');
-      expect(result.rawQuery).toBe('Global Markets 2026!');
-      expect(result.tokens).toContain('global');
-      expect(result.tokens).toContain('markets');
+      const result = processSearchQuery('  International   Diplomacy 2026!  ');
+      expect(result.rawQuery).toBe('International Diplomacy 2026!');
+      expect(result.tokens).toContain('international');
+      expect(result.tokens).toContain('diplomacy');
       expect(result.tokens).toContain('2026');
       expect(result.entityType).toBe('GENERIC');
+    });
+
+    it('detects Global Markets entity type', () => {
+      const res = processSearchQuery('Global Markets 2026!');
+      expect(res.entityType).toBe('GLOBAL_MARKETS');
     });
 
     it('detects AP Elections entity type and prepares effective query', () => {
@@ -477,6 +483,66 @@ describe('Search Relevance & Query Processing Engine', () => {
         description: 'British policymakers signal cautious outlook for consumer spending.',
       };
       expect(isArticleRelevantToCategory(ukStory, 'india')).toBe(false);
+    });
+  });
+
+  describe('getRelatedSearches', () => {
+    it('returns 5–6 relevant suggestions for Artificial Intelligence', () => {
+      const suggestions = getRelatedSearches('Artificial Intelligence');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('Generative AI Models');
+      expect(suggestions).toContain('OpenAI ChatGPT Updates');
+      // Ensure the query itself is not in the suggestions
+      expect(suggestions.map((s) => s.toLowerCase())).not.toContain('artificial intelligence');
+    });
+
+    it('returns 5–6 relevant suggestions for Cricket World Cup', () => {
+      const suggestions = getRelatedSearches('Cricket World Cup');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('ICC World Cup Schedule');
+      expect(suggestions).toContain('India vs Australia Cricket');
+    });
+
+    it('returns 5–6 relevant suggestions for Narendra Modi', () => {
+      const suggestions = getRelatedSearches('Narendra Modi');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('PM Modi Speeches');
+    });
+
+    it('returns 5–6 relevant suggestions for AP Elections and Andhra Pradesh', () => {
+      const suggestions = getRelatedSearches('AP elections');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('Andhra Pradesh Assembly Elections');
+      expect(suggestions).toContain('TDP vs YSRCP News');
+    });
+
+    it('returns 5–6 relevant suggestions for Google and Tesla', () => {
+      const googleSuggestions = getRelatedSearches('Google');
+      expect(googleSuggestions.length).toBeGreaterThanOrEqual(5);
+      expect(googleSuggestions).toContain('Alphabet Quarterly Earnings');
+
+      const teslaSuggestions = getRelatedSearches('Tesla');
+      expect(teslaSuggestions.length).toBeGreaterThanOrEqual(5);
+      expect(teslaSuggestions).toContain('Elon Musk News');
+      expect(teslaSuggestions).toContain('Electric Vehicles Market');
+    });
+
+    it('handles natural-language multi-word queries', () => {
+      const suggestions = getRelatedSearches('latest India technology news');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions).toContain('Bengaluru Startup Ecosystem');
+    });
+
+    it('returns empty array for gibberish or unsupported queries (Requirement 8)', () => {
+      expect(getRelatedSearches('xyzqwe123gibberish')).toEqual([]);
+      expect(getRelatedSearches('')).toEqual([]);
+      expect(getRelatedSearches(null)).toEqual([]);
+      expect(getRelatedSearches(undefined)).toEqual([]);
+      expect(getRelatedSearches('a')).toEqual([]);
     });
   });
 });
