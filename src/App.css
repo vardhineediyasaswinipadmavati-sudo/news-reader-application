@@ -172,6 +172,100 @@
   height: 13px;
 }
 
+/* Autocomplete Dropdown */
+.search-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  padding: 0.35rem 0;
+  margin: 0;
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: fadeInFast 120ms ease-out;
+}
+
+@keyframes fadeInFast {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.85rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  text-align: left;
+  width: 100%;
+  border: none;
+  background: none;
+}
+
+.search-autocomplete-item:hover,
+.search-autocomplete-item.active,
+.search-autocomplete-item[aria-selected="true"] {
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.search-autocomplete-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.search-autocomplete-item:hover .search-autocomplete-icon,
+.search-autocomplete-item.active .search-autocomplete-icon,
+.search-autocomplete-item[aria-selected="true"] .search-autocomplete-icon {
+  color: var(--accent);
+}
+
+.search-autocomplete-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-autocomplete-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.search-autocomplete-item:hover .search-autocomplete-arrow,
+.search-autocomplete-item.active .search-autocomplete-arrow,
+.search-autocomplete-item[aria-selected="true"] .search-autocomplete-arrow {
+  opacity: 0.7;
+  transform: translateX(2px);
+}
+
+@media (min-width: 901px) {
+  .masthead-search-wrap .search-autocomplete-dropdown {
+    left: auto;
+    right: 0;
+    min-width: 280px;
+  }
+}
+
 /* API Status Badge */
 .api-status-badge {
   display: inline-flex;

@@ -173,6 +173,14 @@ const TOPIC_REGISTRY = [
       'AP Election Results Analysis',
       'Andhra Pradesh Voter Turnout',
     ],
+    autocompleteSuggestions: [
+      'Andhra Pradesh Assembly Elections',
+      'AP Election Results Analysis',
+      'TDP vs YSRCP News',
+      'Amaravati Capital Works',
+      'Pawan Kalyan Speeches',
+      'Andhra Pradesh Voter Turnout',
+    ],
     isRegionalAP: true,
   },
 
@@ -188,6 +196,14 @@ const TOPIC_REGISTRY = [
       'Andhra Pradesh Capital Budget',
       'Vijayawada Amaravati Highway',
       'Amaravati Seed Access Road',
+      'Chandrababu Naidu Amaravati',
+      'AP High Court Amaravati',
+    ],
+    autocompleteSuggestions: [
+      'Amaravati',
+      'Amaravati CRDA Master Plan',
+      'Andhra Pradesh Capital Budget',
+      'Vijayawada Amaravati Highway',
       'Chandrababu Naidu Amaravati',
       'AP High Court Amaravati',
     ],
@@ -214,6 +230,14 @@ const TOPIC_REGISTRY = [
       'Pawan Kalyan Jana Sena',
       'Polavaram Project Updates',
     ],
+    autocompleteSuggestions: [
+      'Andhra Pradesh',
+      'Andhra Pradesh Assembly Elections',
+      'Andhra Pradesh Politics',
+      'Amaravati',
+      'Andhra Pradesh Cabinet News',
+      'Chandrababu Naidu',
+    ],
     isRegionalAP: true,
   },
 
@@ -232,6 +256,14 @@ const TOPIC_REGISTRY = [
       'New Delhi Government Updates',
       'Make in India Semiconductor',
     ],
+    autocompleteSuggestions: [
+      'Narendra Modi',
+      'PM Modi Speeches',
+      'Modi Cabinet Decisions',
+      'India Foreign Policy Briefing',
+      'BJP National Executive',
+      'New Delhi Government Updates',
+    ],
   },
 
   // 5. Companies / Organizations: Google / Alphabet
@@ -248,6 +280,15 @@ const TOPIC_REGISTRY = [
       'Sundar Pichai Keynote',
       'Google Cloud Computing',
       'Google Search AI Overview',
+    ],
+    autocompleteSuggestions: [
+      'Google',
+      'Google Gemini AI',
+      'Google Cloud Computing',
+      'Google Search AI Overview',
+      'Alphabet Quarterly Earnings',
+      'Android 15 OS',
+      'Sundar Pichai',
     ],
   },
 
@@ -266,6 +307,14 @@ const TOPIC_REGISTRY = [
       'Cybertruck Updates',
       'EV Battery Technology',
     ],
+    autocompleteSuggestions: [
+      'Tesla',
+      'Tesla Model Y Delivery',
+      'Tesla Cybertruck Updates',
+      'Elon Musk News',
+      'Electric Vehicles Market',
+      'Tesla Gigafactory Expansion',
+    ],
   },
 
   // 7. Sports: Cricket World Cup
@@ -282,6 +331,14 @@ const TOPIC_REGISTRY = [
       'T20 World Cup Highlights',
       'BCCI Team India Squad',
       'Cricket World Cup Final',
+    ],
+    autocompleteSuggestions: [
+      'Cricket World Cup',
+      'Cricket World Cup Schedule',
+      'India Cricket',
+      'ICC World Cup',
+      'IPL 2026 Schedule',
+      'Virat Kohli Batting Stats',
     ],
   },
 
@@ -301,6 +358,14 @@ const TOPIC_REGISTRY = [
       'India AI Strategy',
       'IT Services Sector Exports',
       'Digital Public Infrastructure UPI',
+    ],
+    autocompleteSuggestions: [
+      'India Technology',
+      'India Semiconductor Mission',
+      'ISRO Space Missions',
+      'Bengaluru Startup Ecosystem',
+      'India AI Strategy',
+      'IT Services Sector Exports',
     ],
   },
 
@@ -322,6 +387,14 @@ const TOPIC_REGISTRY = [
       'New Delhi Policy Briefings',
       'Indian Railways Modernization',
     ],
+    autocompleteSuggestions: [
+      'India National News',
+      'India News',
+      'Lok Sabha Parliament News',
+      'RBI Repo Rate Projections',
+      'Supreme Court of India Rulings',
+      'India Economy Growth Forecast',
+    ],
   },
 
   // 10. Hyderabad
@@ -339,6 +412,14 @@ const TOPIC_REGISTRY = [
       'Telangana Economy & Budget',
       'Cyberabad Police Advisories',
     ],
+    autocompleteSuggestions: [
+      'Hyderabad',
+      'Telangana Politics News',
+      'Hyderabad Real Estate Trends',
+      'HITEC City Tech Hub',
+      'Hyderabad Metro Rail Expansion',
+      'Telangana Economy & Budget',
+    ],
   },
 
   // 11. World News
@@ -354,6 +435,14 @@ const TOPIC_REGISTRY = [
       'Global Economic Outlook',
       'United Nations Security Council',
       'Asia Pacific Trade Accords',
+    ],
+    autocompleteSuggestions: [
+      'World News',
+      'US Presidential Election',
+      'Middle East Diplomatic Talks',
+      'European Union Energy Policy',
+      'Global Economic Outlook',
+      'United Nations Security Council',
     ],
   },
 
@@ -375,6 +464,14 @@ const TOPIC_REGISTRY = [
       'Quantum Computing Breakthroughs',
       'Consumer Tech Hardware',
     ],
+    autocompleteSuggestions: [
+      'Technology',
+      'Tech News',
+      'Semiconductor Chip Shortage',
+      'Enterprise Cybersecurity',
+      'Cloud Infrastructure Trends',
+      'Quantum Computing Breakthroughs',
+    ],
   },
 
   // 13. Artificial Intelligence / AI
@@ -395,6 +492,14 @@ const TOPIC_REGISTRY = [
       'Machine Learning Research',
       'AI Safety & Governance',
     ],
+    autocompleteSuggestions: [
+      'Artificial Intelligence',
+      'Artificial Intelligence in India',
+      'Generative AI',
+      'AI Technology',
+      'OpenAI',
+      'Machine Learning Research',
+    ],
   },
 
   // 14. India Cricket
@@ -413,6 +518,14 @@ const TOPIC_REGISTRY = [
       'India Test Match Series',
       'ICC World Test Championship',
     ],
+    autocompleteSuggestions: [
+      'India Cricket',
+      'Cricket World Cup',
+      'IPL 2026 Schedule',
+      'BCCI Team India News',
+      'Rohit Sharma Captaincy',
+      'Virat Kohli Batting Stats',
+    ],
   },
 
   // 15. Semiconductor Industry
@@ -428,6 +541,14 @@ const TOPIC_REGISTRY = [
       'Silicon Wafer Manufacturing',
       'Global Chip Subsidies',
       'ASML Lithography Tech',
+    ],
+    autocompleteSuggestions: [
+      'Semiconductors',
+      'TSMC Foundry Expansion',
+      'Nvidia AI Accelerators',
+      'Intel Core Ultra Processors',
+      'Silicon Wafer Manufacturing',
+      'Global Chip Subsidies',
     ],
   },
 
@@ -446,6 +567,14 @@ const TOPIC_REGISTRY = [
       'Electric Two-Wheelers Market',
       'Hybrid vs Electric Cars',
     ],
+    autocompleteSuggestions: [
+      'Electric Vehicles',
+      'EV Charging Station Network',
+      'Solid State EV Batteries',
+      'Tesla Cybertruck & Model Y',
+      'Clean Transport Subsidies',
+      'Electric Two-Wheelers Market',
+    ],
   },
 
   // 17. Apple Inc.
@@ -461,6 +590,14 @@ const TOPIC_REGISTRY = [
       'Tim Cook Keynote Address',
       'iOS Next-Gen Features',
       'Apple Intelligence AI',
+      'MacBook M4 Silicon',
+    ],
+    autocompleteSuggestions: [
+      'Apple',
+      'Apple Vision Pro Ecosystem',
+      'iPhone 16 Pro Updates',
+      'Apple Intelligence AI',
+      'Tim Cook Keynote Address',
       'MacBook M4 Silicon',
     ],
   },
@@ -480,6 +617,14 @@ const TOPIC_REGISTRY = [
       'OpenAI Microsoft Alliance',
       'Xbox Gaming Industry',
     ],
+    autocompleteSuggestions: [
+      'Microsoft',
+      'Microsoft Copilot Workspace',
+      'Azure Cloud Revenue Growth',
+      'Satya Nadella Keynote',
+      'Windows 11 AI Integration',
+      'OpenAI Microsoft Alliance',
+    ],
   },
 
   // 19. Nvidia
@@ -496,6 +641,14 @@ const TOPIC_REGISTRY = [
       'Nvidia Quarterly Earnings',
       'CUDA Developer Platform',
       'Enterprise GPU Clusters',
+    ],
+    autocompleteSuggestions: [
+      'Nvidia',
+      'Nvidia Blackwell Architecture',
+      'Jensen Huang Keynote',
+      'AI Data Center Infrastructure',
+      'Nvidia Quarterly Earnings',
+      'CUDA Developer Platform',
     ],
   },
 
@@ -514,6 +667,14 @@ const TOPIC_REGISTRY = [
       'Indian Private Space Startups',
       'NASA ISRO NISAR Satellite',
     ],
+    autocompleteSuggestions: [
+      'ISRO',
+      'ISRO Gaganyaan Human Spaceflight',
+      'Chandrayaan 4 Lunar Mission',
+      'Aditya L1 Solar Research',
+      'SSLV Commercial Rocket Launches',
+      'NASA ISRO NISAR Satellite',
+    ],
   },
 
   // 21. Cybersecurity
@@ -529,6 +690,14 @@ const TOPIC_REGISTRY = [
       'CISA Advisory Bulletins',
       'Data Breach Forensics',
       'AI in Cybersecurity Defense',
+    ],
+    autocompleteSuggestions: [
+      'Cybersecurity',
+      'Zero Day Threat Reports',
+      'Ransomware Attack Trends',
+      'Cloud Security Posture',
+      'CISA Advisory Bulletins',
+      'Data Breach Forensics',
     ],
   },
 
@@ -546,6 +715,14 @@ const TOPIC_REGISTRY = [
       'Nuclear SMR Technology',
       'Renewable Energy Transition',
     ],
+    autocompleteSuggestions: [
+      'Clean Energy',
+      'Solar Photovoltaic Efficiency',
+      'Green Hydrogen Initiatives',
+      'Offshore Wind Farm Projects',
+      'Grid Energy Storage Batteries',
+      'Renewable Energy Transition',
+    ],
   },
 
   // 23. Global Markets / Wall Street
@@ -561,6 +738,14 @@ const TOPIC_REGISTRY = [
       'Global Inflation Indicators',
       'Sensex Nifty Record Highs',
       'OPEC Crude Oil Production',
+    ],
+    autocompleteSuggestions: [
+      'Global Markets',
+      'Federal Reserve Interest Rates',
+      'Wall Street Stock Rally',
+      'US Treasury Bond Yields',
+      'Global Inflation Indicators',
+      'Sensex Nifty Record Highs',
     ],
   },
 ];
@@ -603,6 +788,105 @@ export function getRelatedSearches(query) {
   }
 
   return [];
+}
+
+/**
+ * Intelligent Autocomplete Suggestions for live search bar input.
+ * Dynamically suggests 5–6 relevant search queries matching partial words,
+ * entities, multi-word queries, and topic expansions.
+ * Returns empty array for empty, invalid, or unrecognized/gibberish queries.
+ */
+export function getSearchAutocomplete(query) {
+  if (!query || typeof query !== 'string') return [];
+  const clean = query.trim();
+  if (clean.length < 2) return [];
+
+  const lowerQ = clean.toLowerCase();
+  const qTokens = lowerQ.split(/\s+/).filter(Boolean);
+
+  // Support alternate spellings and phonetic variations (e.g. andra -> andhra)
+  const queryVariants = [lowerQ];
+  if (lowerQ.startsWith('andr')) {
+    queryVariants.push(lowerQ.replace(/^andr/, 'andhr'));
+  }
+
+  // Check if a topic's primary identity (name, focusTerm, or primary synonyms) matches query
+  const isDirectTopicMatch = (topic) => {
+    const primaryKeys = [
+      topic.id.toLowerCase().replace(/_/g, ' '),
+      topic.focusTerm ? topic.focusTerm.toLowerCase() : '',
+    ];
+    if (Array.isArray(topic.synonyms)) {
+      primaryKeys.push(...topic.synonyms.slice(0, 4).map((s) => s.toLowerCase()));
+    }
+    return queryVariants.some((variant) =>
+      primaryKeys.some((key) => key && (key.startsWith(variant) || variant.startsWith(key)))
+    );
+  };
+
+  const candidateScores = new Map();
+
+  const addCandidate = (text, baseScore) => {
+    if (!text || typeof text !== 'string') return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const lowerText = trimmed.toLowerCase();
+
+    let textScore = 0;
+
+    // Direct startsWith match against the exact query gets topmost priority
+    if (lowerText.startsWith(lowerQ)) {
+      textScore = 1500 - Math.min(150, (lowerText.length - lowerQ.length) * 2);
+    } else {
+      for (const variant of queryVariants) {
+        if (lowerText.startsWith(variant)) {
+          const score = 1000 - Math.min(150, (lowerText.length - variant.length) * 2);
+          textScore = Math.max(textScore, score);
+        } else if (qTokens.length > 1 && qTokens.every((t) => lowerText.includes(t))) {
+          textScore = Math.max(textScore, 750);
+        } else {
+          const words = lowerText.split(/\s+/);
+          if (words.some((w) => w.startsWith(variant))) {
+            textScore = Math.max(textScore, 650);
+          } else if (qTokens.length > 0 && words.some((w) => w.startsWith(qTokens[0]))) {
+            textScore = Math.max(textScore, 250);
+          }
+        }
+      }
+    }
+
+    const totalScore = textScore > 0 ? textScore + baseScore : baseScore;
+    if (totalScore > 0) {
+      const existing = candidateScores.get(trimmed) || 0;
+      candidateScores.set(trimmed, Math.max(existing, totalScore));
+    }
+  };
+
+  // Evaluate each topic in registry
+  TOPIC_REGISTRY.forEach((topic) => {
+    const isDirect = isDirectTopicMatch(topic);
+    const pool = topic.autocompleteSuggestions || topic.relatedSearches || [];
+
+    pool.forEach((item, itemIdx) => {
+      // If direct topic match, assign topic association score even if text doesn't start with lowerQ
+      const topicScore = isDirect ? Math.max(100, 400 - itemIdx * 25) : 0;
+      addCandidate(item, topicScore);
+    });
+  });
+
+  // Sort candidates by descending score
+  const sorted = Array.from(candidateScores.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([text]) => text);
+
+  // Return up to 6 suggestions (5-6)
+  if (sorted.length > 6) {
+    return sorted.slice(0, 6);
+  } else if (sorted.length >= 2) {
+    return sorted;
+  }
+
+  return sorted.length >= 1 && candidateScores.get(sorted[0]) >= 400 ? sorted : [];
 }
 
 /**

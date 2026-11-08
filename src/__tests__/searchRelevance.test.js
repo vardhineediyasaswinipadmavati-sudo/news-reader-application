@@ -7,6 +7,7 @@ import {
   diversifyPublishers,
   isArticleRelevantToCategory,
   getRelatedSearches,
+  getSearchAutocomplete,
 } from '../utils/searchRelevance';
 
 describe('Search Relevance & Query Processing Engine', () => {
@@ -543,6 +544,59 @@ describe('Search Relevance & Query Processing Engine', () => {
       expect(getRelatedSearches(null)).toEqual([]);
       expect(getRelatedSearches(undefined)).toEqual([]);
       expect(getRelatedSearches('a')).toEqual([]);
+    });
+  });
+
+  describe('getSearchAutocomplete', () => {
+    it('returns exact 5 suggestions for "artificial int" matching user requirements', () => {
+      const suggestions = getSearchAutocomplete('artificial int');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('Artificial Intelligence');
+      expect(suggestions).toContain('Artificial Intelligence in India');
+      expect(suggestions).toContain('Generative AI');
+      expect(suggestions).toContain('AI Technology');
+      expect(suggestions).toContain('OpenAI');
+    });
+
+    it('returns 5–6 relevant suggestions for partial query "andr"', () => {
+      const suggestions = getSearchAutocomplete('andr');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('Andhra Pradesh');
+      expect(suggestions).toContain('Andhra Pradesh Assembly Elections');
+      expect(suggestions).toContain('Andhra Pradesh Politics');
+      expect(suggestions).toContain('Android 15 OS');
+    });
+
+    it('returns 5–6 relevant suggestions for partial query "goog"', () => {
+      const suggestions = getSearchAutocomplete('goog');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('Google');
+      expect(suggestions).toContain('Google Gemini AI');
+      expect(suggestions).toContain('Google Cloud Computing');
+    });
+
+    it('returns 5–6 relevant suggestions for partial query "crick"', () => {
+      const suggestions = getSearchAutocomplete('crick');
+      expect(suggestions.length).toBeGreaterThanOrEqual(5);
+      expect(suggestions.length).toBeLessThanOrEqual(6);
+      expect(suggestions).toContain('Cricket World Cup');
+      expect(suggestions).toContain('Cricket World Cup Schedule');
+      expect(suggestions).toContain('India Cricket');
+    });
+
+    it('returns empty array for unrecognized or gibberish queries', () => {
+      expect(getSearchAutocomplete('xyzqwe123gibberish')).toEqual([]);
+    });
+
+    it('returns empty array for empty, short, or invalid inputs', () => {
+      expect(getSearchAutocomplete('')).toEqual([]);
+      expect(getSearchAutocomplete('   ')).toEqual([]);
+      expect(getSearchAutocomplete('a')).toEqual([]);
+      expect(getSearchAutocomplete(null)).toEqual([]);
+      expect(getSearchAutocomplete(undefined)).toEqual([]);
     });
   });
 });
